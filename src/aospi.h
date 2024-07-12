@@ -27,7 +27,7 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "0.3.1"
+#define AOSPI_VERSION "0.4.0"
 
 
 // OSP uses telegrams of max 12 bytes
@@ -62,6 +62,16 @@ void aospi_rxcount_reset();
 int  aospi_txcount_get();
 // The library tracks the number of received telegrams via calls to aospi_txrx(). This function reports that count.
 int  aospi_rxcount_get();
+
+
+// For testing! Sets the output-enable of the outgoing level shifter to `val`.
+void aospi_outoena_set( int val );
+// For testing! Returns the state of the output-enable of the outgoing level shifter.
+int aospi_outoena_get();
+// For testing! Sets the output-enable of the incoming level shifter to `val`.
+void aospi_inoena_set( int val );
+// For testing! Returns the state of the output-enable of the incoming level shifter.
+int aospi_inoena_get( );
 
 
 #endif

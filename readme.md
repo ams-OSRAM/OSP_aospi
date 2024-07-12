@@ -1,7 +1,7 @@
-# Library OSP 2-wire SPI - _aospi_
+# OSP 2wireSPI aospi
 
-Library "OSP 2-wire SPI - _aospi_" is one of the **aolibs**;
-short for Arduino OSP libraries from ams-OSRAM.
+Library "OSP 2wireSPI aospi", usually abbreviated to "aospi",
+is one of the **aolibs**; short for Arduino OSP libraries from ams-OSRAM.
 This suite implements support for chips that use the Open System Protocol, 
 like the AS1163 ("SAID") or the OSIRE E3731i ("RGBi").
 The landing page for the _aolibs_ is on 
@@ -10,23 +10,23 @@ The landing page for the _aolibs_ is on
 
 ## Introduction
 
-Library _aospi_ implements 2wire-SPI towards and from OSP nodes.
+Library _aospi_ implements 2-wire SPI towards and from OSP nodes.
 
-![aospi in context](extra/aolibs-aospi.drawio.png)
+![aospi in context](extras/aolibs-aospi.drawio.png)
 
 It implements the _communication layer_ between the MCU and OSP nodes;
-it allows sending and receiving telegrams (actually, byte arrays) using SPI.
+it allows sending and receiving telegrams (actually, raw byte arrays) using SPI.
 
-Another library - _aoosp_ - implements how telegrams look like: 
-the encoding of the bytes, the CRC, what response telegrams 
-comes with which command telegram.
+Another library - _aoosp_ - implements how the telegrams byte arrays look like: 
+the encoding of the arguments into bytes, the CRC, what response telegrams 
+comes with which command telegram. It builds on top of _aospi_.
 
 
 ## Examples
 
 This library comes with the following examples.
 You can find them in the Arduino IDE via 
-File > Examples > OSP 2-wire SPI - aospi > ...
+File > Examples > OSP 2wireSPI aospi > ...
 
 -  **aospi_tx**  
    In this demo, a small set of telegrams has been hand-constructed.
@@ -70,6 +70,13 @@ Here is a quick overview:
   This configures all pins, interrupt routine, SPI master and SPI slave drivers
   and puts the mux to BiDir.
 
+- To test the (OSP32) PCB the following functions are provided. The first pair
+  `aospi_outoena_set()`/`aospi_outoena_get()` allows testing the conrol line of 
+  the output enable of the outgoing level shifter, the second pair 
+  `aospi_inoena_set()`/`aospi_inoena_get()` allows testing the conrol line of 
+  the output enable of the incoming level shifter. Do not use during regular
+  operation.
+
 - The macro `AOSPI_TELE_MAXSIZE` defines the maximum size of an OSP telegram.
 
 - Finally, there is the macro `AOSPI_VERSION`, which identifies the version of the library.
@@ -94,7 +101,7 @@ At the moment, the **OSP32** board implements all these assumptions.
 
 The following diagram sketches the assumed connections.
 
-![schematic](extra/schematic.drawio.png)
+![schematic](extras/schematic.drawio.png)
 
 
 ### Explanation of the schematic
@@ -188,7 +195,7 @@ Also these level shifter have several roles.
   control of the MCU. It selects between BiDir responses (from the first
   OSP node) or Loop responses (from the last OSP node).
   
-  ![Mux](extra/levelshift.drawio.png)
+  ![Mux](extras/levelshift.drawio.png)
 
 - The MCU sets the outputs always to tri-state (output disable) except while
   receiving a telegram. This helps, in BiDir mode, to not receive the command telegram which is send.
@@ -233,7 +240,7 @@ a change in the software, re-configuring pins when the current firmware changes 
 
 The diagram below shows the various connection possibilities, upper left (green) the OSP32 board.
 
-![Connections](extra/connections.drawio.png)
+![Connections](extras/connections.drawio.png)
 
 The left-most column assumes a 3V3 MCU, and thus uses level shifters.
 The three architectures in this column are supported by the aospi lib.
@@ -267,7 +274,7 @@ The SPI slave driver comes from [Hideaki Tai](https://github.com/hideakitai/ESP3
 The _aospi_ library comes with a [copy](src/slave) of ESP32SPISlave included, to ensure there
 are no version issues. That imported library is actually a single h-file (with code).
 
-![Modules](extra/modules.drawio.png)
+![Modules](extras/modules.drawio.png)
 
 The `aospi.cpp` wraps the master and slave driver, with code to handle the 
 level shifters, selector, slave select, etc.
@@ -275,7 +282,7 @@ level shifters, selector, slave select, etc.
 
 ## Execution architecture
 
-Sending command telegrams using 2wire-SPI is relatively straightforward
+Sending command telegrams using 2-wire SPI is relatively straightforward
 using the standard ESP SPI master driver.
 
 Receiving response telegrams is harder, even with Hideaki Tai's driver.
@@ -293,22 +300,22 @@ This chapter explains the execution architecture in more detail.
   
 - The first node must always be configured in _MCU mode_ (pull-up on SIO.P and pull-down on SIO.N).
 
-- The communication between MCU and first node is either _1wire-SPI_ or _2wire-SPI_.
+- The communication between MCU and first node is either _1-wire SPI_ or _2-wire SPI_.
 
-  - 1wire-SPI only uses the P wire.
+  - 1-wire SPI only uses the P wire.
     The signal contains clock and data by using so-called _Manchester_ encoding.
     This means that the MCU firmware must "double" the telegram bits before 
     it passes the telegram to the SPI master block.
     
-  - 2wire-SPI uses the P wire for data and the N wire for clock.
+  - 2-wire SPI uses the P wire for data and the N wire for clock.
     This means that the MCU firmware can just pass the telegram to the SPI master.
     
-  - The selection between 1wire-SPI and 2wire-SPI is made by an OTP bit in the SAID
+  - The selection between 1-wire SPI and 2-wire SPI is made by an OTP bit in the SAID
     (bit 0D.3 `SPI_mode`).
     
-  - The SAID AS1163 has the OTP bit, the OSIRE RGBi E3731i only supports 1wire-SPI.
+  - The SAID AS1163 has the OTP bit, the OSIRE RGBi E3731i only supports 1-wire SPI.
   
-  - **The _aospi_ library only supports 2wire-SPI**.
+  - **The _aospi_ library only supports 2-wire SPI**.
 
 
 ### Receiving response telegrams
@@ -321,11 +328,11 @@ This chapter explains the execution architecture in more detail.
   
   - If the first node is chosen, this is known as bi-directional (_BiDir_) communication.
   
-    ![BiDir](extra/dirbidir.drawio.png)
+    ![BiDir](extras/dirbidir.drawio.png)
     
   - If the last node is chosen, this is known as uni-directional communication or _Loop_.
   
-    ![Loop](extra/dirloop.drawio.png)
+    ![Loop](extras/dirloop.drawio.png)
     
   - The OSP32 board and this library support both modes.
   
@@ -341,7 +348,7 @@ This chapter explains the execution architecture in more detail.
 - On the OSP32 board, the first node is connected to the SPI slave, and the
   last node is connected to the SPI slave, and a mux selects the active connection.
   
-  ![BiDir](extra/dirosp32.drawio.png)
+  ![BiDir](extras/dirosp32.drawio.png)
   
 
 ## Implementation notes
@@ -458,11 +465,11 @@ This chapter explains the execution architecture in more detail.
   
 - This is the timing of one telegram.
 
-  ![Timing node](extra/telegram-timing.drawio.png)
+  ![Timing node](extras/telegram-timing.drawio.png)
 
   This is the resulting timing in a chain.
 
-  ![Timing chain](extra/timing.drawio.png)
+  ![Timing chain](extras/timing.drawio.png)
   
 - The time out of 17.4 ms used in the code is based on the worst-case chain (longest OSP chain in BiDir)
   and the worst-case command (I2C read of 8 bytes with slowest clock).
@@ -470,16 +477,17 @@ This chapter explains the execution architecture in more detail.
 
 ## Traces
 
-Two traces from a logic analyzer are available with this documentation.
+Two traces from a [logic analyzer](https://www.saleae.com/pages/downloads) 
+are available with this documentation.
 The high level schematic diagram indicates where the probes of the 
 logic analyzer are placed (colored circles).
 
 ### BiDir mode
 
 A trace is made, while running `aospi_txrx` in BiDir mode.
-The trace is also part of the documentation: [aospi-txrx.bidir.sal](extra/aospi-txrx.bidir.sal).
+The trace is also part of the documentation: [aospi-txrx.bidir.sal](extras/aospi-txrx.bidir.sal).
 
-![bidir mode, trace all](extra/aospi-txrx.bidir.all-trace.png)
+![bidir mode, trace all](extras/aospi-txrx.bidir.all-trace.png)
 
 - The purple pulses (D7, OUT.MCU.OENA) indicates when the OUTlevel shifter is enabled, 
   i.e. when a command telegram is send. The above screenshot shows four: RESET, INITBIDIR, CLRERROR, and GOACTIVE.
@@ -494,17 +502,17 @@ The trace is also part of the documentation: [aospi-txrx.bidir.sal](extra/aospi-
 
 The figure below shows details of the INITBIDIR command ans response. 
 
-![bidir mode, trace BIDIR](extra/aospi-txrx.bidir.bidir-trace.png)
+![bidir mode, trace BIDIR](extras/aospi-txrx.bidir.bidir-trace.png)
 
 - The BIDIR command telegram being send is sliced by the logic analyzer as A0 04 02 A9; 
   this matches the source code.
 - The response telegram is sliced as A0 09 02 00 50 6D, 
   which shows that the last node has address 2 in response to a INITBIDIR.
-  ![](extra/aospi-txrx.bidir.bidir-slice.png)
+  ![](extras/aospi-txrx.bidir.bidir-slice.png)
 
 The figure below shows details of the INITBIDIR command ans response. 
 
-![bidir mode, trace BIDIR](extra/aospi-txrx.bidir.identify-trace.png)
+![bidir mode, trace BIDIR](extras/aospi-txrx.bidir.identify-trace.png)
 
 - Observe the tight timing (5 us) between command and response.
 - The response telegram is sliced as A0 06 07 00 00 00 40 AA, the 00000040 is the type for SAID.
@@ -514,9 +522,9 @@ The figure below shows details of the INITBIDIR command ans response.
 ### Loop mode
 
 A trace is made, while running `aospi_txrx` in Loop mode.
-The trace is also part of the documentation: [aospi-txrx.loop.sal](extra/aospi-txrx.loop.sal).
+The trace is also part of the documentation: [aospi-txrx.loop.sal](extras/aospi-txrx.loop.sal).
 
-![loop mode, trace all](extra/aospi-txrx.loop.all-trace.png)
+![loop mode, trace all](extras/aospi-txrx.loop.all-trace.png)
 
 - We see the same pulses after the RESET telegram.
 - Observer that after the second pulse (INITLOOP), the last node starts mastering the response.
@@ -525,25 +533,33 @@ The trace is also part of the documentation: [aospi-txrx.loop.sal](extra/aospi-t
 
 The figure below shows details of the INITLOOP command and response. 
 
-![bidir mode, trace BIDIR](extra/aospi-txrx.loop.loop-trace.png)
+![bidir mode, trace BIDIR](extras/aospi-txrx.loop.loop-trace.png)
 
 - The LOOP command telegram being send is sliced by the logic analyzer as A0 04 03 86; 
   this matches the source code.
 - The response telegram is sliced as A0 09 03 00 50 63, 
   which shows that the last node has address 2 in response to a INITBIDIR.
 
-  ![](extra/aospi-txrx.loop.loop-slice.png)
+  ![](extras/aospi-txrx.loop.loop-slice.png)
 
 - Observer that the default clock line of the response is **high**.
 
 
 ## Version history _aospi_
 
+- **2024 July 7, 0.4.0**  
+  - Arduino name changed from `OSP 2-wire SPI - aospi` to `OSP 2wireSPI aospi`.
+  - Added link for traces.
+  - Added blue slave line in BiDir diagram (`dirbidir.drawio.png`) and green dashed OSP32 border line in OPS32 diagram (`dirosp32.drawio.png`).
+  - Renamed dir `extra` to `extras`.
+  - Small corrections in readme.md.
+  - Added (for board testing) `aospi_outoena_set()`/`aospi_outoena_get()` and `aospi_inoena_set()`/`aospi_inoena_get()`.
+
 - **2024 July 3, 0.3.1**  
-  - `license.txt`, `aospi_tx.ino`, `aospi_txrx.ino` line endings changed from LF to CR+LF
+  - `license.txt`, `aospi_tx.ino`, `aospi_txrx.ino` line endings changed from LF to CR+LF.
 
 - **2024 July 2, 0.3.0**  
-  Initial release candidate
+  - Initial release candidate.
 
 
 (end)

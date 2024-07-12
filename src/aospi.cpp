@@ -437,6 +437,61 @@ int  aospi_dirmux_is_bidir() {
 }
 
 
+// === Testing ==============================================================
+
+
+/*!
+    @brief  Sets the output-enable of the outgoing level shifter to `val`.
+	@parm   val
+	        0 to disable output (LED off), 1 to enable (LED on).
+    @note   This function should not be called during normal operation.
+	        It is intended fo test purposes (test the PCB).
+    @note   The OSP32 board has a signaling LED ("OUT") connected to 
+	        this line, identifying its state.
+    @note   Do not use while telegrams are sent, since aospi_tx()/aospi_txrx()
+	        controls output-enable.
+*/
+void aospi_outoena_set( int val ) {
+  digitalWrite(AOSPI_OUT_OENA, val);
+}
+
+
+/*!
+    @brief  Returns the state of the output-enable of the outgoing level shifter.
+	@return 0 when output disabled (LED off), 1 when enabled (LED on).
+    @note   For testing, see aospi_outoena_set().
+*/
+int aospi_outoena_get( ) {
+  return digitalRead(AOSPI_OUT_OENA);
+}
+
+
+/*!
+    @brief  Sets the output-enable of the incoming level shifter to `val`.
+	@parm   val
+	        0 to disable output (LED off), 1 to enable (LED on).
+    @note   This function should not be called during normal operation.
+	        It is intended fo test purposes (test the PCB).
+    @note   The OSP32 board has a signaling LED ("IN") connected to 
+	        this line, identifying its state.
+    @note   Do not use while telegrams are received, since aospi_txrx()
+	        controls output-enable.
+*/
+void aospi_inoena_set( int val ) {
+  digitalWrite(AOSPI_IN_OENA, val);
+}
+
+
+/*!
+    @brief  Returns the state of the output-enable of the incoming level shifter.
+	@return 0 when output disabled (LED off), 1 when enabled (LED on).
+    @note   For testing, see aospi_outoena_set().
+*/
+int aospi_inoena_get( ) {
+  return digitalRead(AOSPI_IN_OENA);
+}
+
+
 // === MAIN =================================================================
 
 
