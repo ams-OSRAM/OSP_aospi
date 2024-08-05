@@ -5,7 +5,7 @@ is one of the **aolibs**; short for Arduino OSP libraries from ams-OSRAM.
 This suite implements support for chips that use the Open System Protocol, 
 like the AS1163 ("SAID") or the OSIRE E3731i ("RGBi").
 The landing page for the _aolibs_ is on 
-[GitHub](https://github.com/ams-OSRAM-Group/aotop).
+[GitHub](https://github.com/ams-OSRAM-Group/OSP_aotop).
 
 
 ## Introduction
@@ -15,11 +15,12 @@ Library _aospi_ implements 2-wire SPI towards and from OSP nodes.
 ![aospi in context](extras/aolibs-aospi.drawio.png)
 
 It implements the _communication layer_ between the MCU and OSP nodes;
-it allows sending and receiving telegrams (actually, raw byte arrays) using SPI.
+it allows sending and receiving telegrams (actually, raw byte arrays) using 
+the SPI blocks of the MCU.
 
-Another library - _aoosp_ - implements how the telegrams byte arrays look like: 
-the encoding of the arguments into bytes, the CRC, what response telegrams 
-comes with which command telegram. It builds on top of _aospi_.
+Another library - _aoosp_ - implements how the telegrams byte arrays are formatted: 
+the encoding of the arguments into bytes, the preamble, payload size indicator,
+CRC, what response telegrams comes with which command telegram. It builds on top of _aospi_.
 
 
 ## Examples
@@ -31,7 +32,8 @@ File > Examples > OSP 2wireSPI aospi > ...
 -  **aospi_tx**  
    In this demo, a small set of telegrams has been hand-constructed.
    Those telegrams are passed directly to the SPI layer (_aospi_ lib).
-   The demo uses a minimal amount of telegrams to switch on the LEDs of the first SAID.
+   The demo uses a minimal amount of telegrams to switch on the LEDs 
+   of the first SAID of the OSP32 board.
 
 -  **aospi_txrx**  
    In this demo, a small set of telegrams has been hand-constructed.
@@ -60,22 +62,22 @@ Here is a quick overview:
   These counter can be reset to 0 with `aospi_txcount_reset()` and `aospi_rxcount_reset()`.
   
 - `aospi_dirmux_set_loop()` and `aospi_dirmux_set_bidir()` set the direction 
-  mux to Loop respectively BiDir. 
-  This function is typically called once after initialization time, but must be
+  mux to Loop respectively BiDir. One of these functions is typically 
+  called once during OSP chain initialization time, but must be
   called before using `aospi_txrx()` (since that uses the direction mux).
   There are also observers of the current direction mux setting 
   (`aospi_dirmux_is_loop()` and `aospi_dirmux_is_bidir()`).
 
+- To test the (OSP32) PCB the following functions are provided. The first pair
+  `aospi_outoena_set()`/`aospi_outoena_get()` allows testing the control line of 
+  the output enable of the outgoing level shifter, the second pair 
+  `aospi_inoena_set()`/`aospi_inoena_get()` allows testing the control line of 
+  the output enable of the incoming level shifter. Do not use during regular
+  operation.
+
 - `aospi_init()` must be called before using any of the above functions.
   This configures all pins, interrupt routine, SPI master and SPI slave drivers
   and puts the mux to BiDir.
-
-- To test the (OSP32) PCB the following functions are provided. The first pair
-  `aospi_outoena_set()`/`aospi_outoena_get()` allows testing the conrol line of 
-  the output enable of the outgoing level shifter, the second pair 
-  `aospi_inoena_set()`/`aospi_inoena_get()` allows testing the conrol line of 
-  the output enable of the incoming level shifter. Do not use during regular
-  operation.
 
 - The macro `AOSPI_TELE_MAXSIZE` defines the maximum size of an OSP telegram.
 
@@ -90,7 +92,8 @@ The _aospi_ library assumes presence of certain peripherals and connections.
 
 - Level shifters with output enable separate the SAIDs from the ESP.
 
-- A mux is implemented to enable the BiDir or Loop mode (by enabling the associated level shifter).
+- A mux is implemented to select between the BiDir or Loop mode
+ (by enabling the associated level shifter).
 
 - Several pull-up and pull-down resistors configure default line levels.
 
@@ -463,11 +466,14 @@ This chapter explains the execution architecture in more detail.
     wait (response length - counter)/2.4MHz
   ```
   
-- This is the timing of one telegram.
+- This is the timing of one telegram to one node.
+  The diagram focuses on the OSP node that receives the command,
+  executes the command and (optionally) gives a response.
 
   ![Timing node](extras/telegram-timing.drawio.png)
 
-  This is the resulting timing in a chain.
+  This is the resulting system trip timing, in a chain, where we also look
+  at the nodes before and after the executing node.
 
   ![Timing chain](extras/timing.drawio.png)
   
@@ -546,6 +552,15 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2024 August 5, 0.4.1**
+  - Corrected landing page link in readme.md from aotop to OSP_aotop.
+  - Updated the two timing diagrams (telegram and chain).
+  - Remove "oalib" from `sentence=` in `library.properties`.
+  - Check with `AORESULT_ASSERT(aospi_inited)` in `aospi.cpp` test getters & setters.
+  - Tab2spaces in `aospi.cpp`.
+  - Text updates in `readme.md`.
+  - Fixed typos `@parm` to `@param`
 
 - **2024 July 7, 0.4.0**  
   - Arduino name changed from `OSP 2-wire SPI - aospi` to `OSP 2wireSPI aospi`.
