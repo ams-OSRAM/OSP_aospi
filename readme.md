@@ -23,6 +23,40 @@ the encoding of the arguments into bytes, the preamble, payload size indicator,
 CRC, what response telegrams comes with which command telegram. It builds on top of _aospi_.
 
 
+## System overview
+
+The _aospi_ library is written for the OSP32 board in the SAID evaluation kit.
+The diagram below gives an abstract overview of the OSP32 board and how
+to connect demo boards. Demo boards are strips of OSP nodes, at the moment of
+writing this document two types of nodes exist: the AS1163 ("SAID") and the 
+OSIRE E3731i ("RGBi").
+
+![OSP32overview](extras/OSP32overview.drawio.png)
+
+The OSP32 board contains an MCU: an ESP32 micro-controller. The MCU has two
+SPI blocks, one for sending telegrams ("SPI OUT") and one for receiving telegrams
+("SPI IN"). The SPI OUT is wired to an on-board OSP node ("SAID OUT"), which 
+drives two RGB triplets and one I2C bus. The SAID OUT is wired to a connector
+on the edge of the OSP32 board ("OUT").
+
+The OUT connector is wired via zero or more demo boards to either a terminator
+or, with a cable, back to a second connector on the edge of the OSP32 board 
+("IN"). The IN connector wires to a second OSP node  ("SAID IN"), which
+drives three RGB triplets.
+
+A switch known as "DIRMUX" either connects the SAID OUT or the SAID IN to the
+SPI receiver ("SPI IN"). This DIRMUX is controlled with a GPIO pin of the MCU.
+There are two LEDs on the OSP32 board (labeled BIDIR and LOOP, not shown 
+in the diagram) which indicate the state of the DIRMUX.
+
+Note that SAID OUT is wired to an I2C bus (with an on-board I2C EEPROM memory).
+This allows testing the I2C capabilities of the SAID without the need to 
+create additional hardware. Not shown in the diagram is that SAID IN also 
+has a test feature: there is an option to connect channel 2 to the MCU and 
+use that to commit a SYNC pulse. Finally note that the OSP32 board has 
+several test pins. This allows hooking up a logic analyzer, to trace telegrams.
+
+
 ## Examples
 
 This library comes with the following examples.
@@ -552,6 +586,10 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2024 aug 9, 0.4.2**
+   - Added "System overview" to `readme.md`.
+   - Small update to `dirosp32.drawio.png`.
 
 - **2024 August 5, 0.4.1**
   - Corrected landing page link in readme.md from aotop to OSP_aotop.
