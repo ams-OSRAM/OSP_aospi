@@ -138,7 +138,7 @@ void tele_identify() {
   uint8_t resp[4+4];
   aoresult_t result= aospi_txrx( identify, sizeof identify, resp, sizeof resp);
   uint32_t id = (uint32_t)(resp[3])<<24 | (uint32_t)(resp[4])<<16 | (uint32_t)(resp[5])<<8 | (uint32_t)(resp[6]);
-  Serial.printf("identify(0x001) %s -> id %X\n", aoresult_to_str(result), id );
+  Serial.printf("identify(0x001) %s -> id %lX\n", aoresult_to_str(result), id );
 }
 
 

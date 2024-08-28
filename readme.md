@@ -39,22 +39,31 @@ SPI blocks, one for sending telegrams ("SPI OUT") and one for receiving telegram
 drives two RGB triplets and one I2C bus. The SAID OUT is wired to a connector
 on the edge of the OSP32 board ("OUT").
 
-The OUT connector is wired via zero or more demo boards to either a terminator
-or, with a cable, back to a second connector on the edge of the OSP32 board 
+The OUT connector is wired via zero or more demo boards to either a _terminator_
+or, with a _cable_, back to a second connector on the edge of the OSP32 board 
 ("IN"). The IN connector wires to a second OSP node  ("SAID IN"), which
 drives three RGB triplets.
 
-A switch known as "DIRMUX" either connects the SAID OUT or the SAID IN to the
-SPI receiver ("SPI IN"). This DIRMUX is controlled with a GPIO pin of the MCU.
+When the terminator is present, the chain of OSP nodes is said to be in 
+bidirectional mode ("BiDir"). In BiDir mode responses from OSP nodes are 
+sent backwards over the chain, and thus appear on sio1 of SAID OUT. 
+When the cable is present,  the chain of OSP nodes is said to be in loop-back 
+mode ("Loop"). In Loop mode responses from OSP nodes are sent forwards 
+over the chain, and thus appear on sio2 of SAID IN.
+
+A switch known as "DIRMUX" either connects the sio1 of SAID OUT or 
+the sio2 of SAID IN to the SPI receiver ("SPI IN"). 
+The DIRMUX is controlled with a GPIO pin of the MCU.
 There are two LEDs on the OSP32 board (labeled BIDIR and LOOP, not shown 
 in the diagram) which indicate the state of the DIRMUX.
 
-Note that SAID OUT is wired to an I2C bus (with an on-board I2C EEPROM memory).
-This allows testing the I2C capabilities of the SAID without the need to 
-create additional hardware. Not shown in the diagram is that SAID IN also 
-has a test feature: there is an option to connect channel 2 to the MCU and 
-use that to commit a SYNC pulse. Finally note that the OSP32 board has 
-several test pins. This allows hooking up a logic analyzer, to trace telegrams.
+Note that SAID OUT (channel 2) is wired to an I2C bus (with an on-board I2C 
+EEPROM memory). This allows testing the I2C capabilities of the SAID without 
+the need to create additional hardware. Not shown in the diagram is that 
+SAID IN also has a test feature: there is an option to connect channel 1/blue 
+to the MCU and use that to issue a SYNC pulse. Finally note that the OSP32 
+board has several test pins. This allows hooking up a logic analyzer, to trace 
+telegrams.
 
 
 ## Examples
@@ -63,19 +72,29 @@ This library comes with the following examples.
 You can find them in the Arduino IDE via 
 File > Examples > OSP 2wireSPI aospi > ...
 
--  **aospi_tx**  
-   In this demo, a small set of telegrams has been hand-constructed.
-   Those telegrams are passed directly to the SPI layer (_aospi_ lib).
-   The demo uses a minimal amount of telegrams to switch on the LEDs 
-   of the first SAID of the OSP32 board.
+- **aospi_tx** ([source](examples/aospi_tx))  
+  In this demo, a small set of telegrams has been hand-constructed.
+  Those telegrams are passed directly to the SPI layer (_aospi_ lib).
+  The demo uses a minimal amount of telegrams to switch on the LEDs 
+  of the first SAID of the OSP32 board.
 
--  **aospi_txrx**  
-   In this demo, a small set of telegrams has been hand-constructed.
-   Those telegrams are passed directly to the SPI layer (_aospi_ lib).
-   Some telegrams cause a response which is passed back from _aospi_,
-   analyzed and printed.
-   
-   The demo can be run in BiDir or Loop mode.
+- **aospi_txrx** ([source](examples/aospi_txrx))  
+  In this demo, a small set of telegrams has been hand-constructed.
+  Those telegrams are passed directly to the SPI layer (_aospi_ lib).
+  Some telegrams cause a response which is passed back from _aospi_,
+  analyzed and printed.
+  
+  The demo can be run in BiDir or Loop mode.
+
+- **aospi_time** ([source](examples/aospi_time))  
+  This demo measures, in a BiDirectional chain, the round trip time for two 
+  telegrams:  READSTAT (5 byte responses) and IDENTIFY (8 byte responses).
+  Both telegrams are sent to each node in chain of length 5 (and then 10 
+  times to allow some averaging).
+  The measured times are compared with each other, to check two aspects.
+  The first is the impact of addressing nodes further in the chain 
+  (adding the fast forwarding time for each intermediate node).
+  The second aspect is the impact of longer telegrams.
 
 
 ## API
@@ -90,11 +109,6 @@ Here is a quick overview:
 
 - `aospi_txrx()` sends a command telegram and receives the response.
 
-- For statistics, the library keeps track of the number of telegrams sent 
-  (with `aospi_tx()` and `aospi_txrx()`) or received (with `aospi_txrx()`).
-  These counters can be retrieved with `aospi_txcount_get()` respectively `aospi_rxcount_get()`.
-  These counter can be reset to 0 with `aospi_txcount_reset()` and `aospi_rxcount_reset()`.
-  
 - `aospi_dirmux_set_loop()` and `aospi_dirmux_set_bidir()` set the direction 
   mux to Loop respectively BiDir. One of these functions is typically 
   called once during OSP chain initialization time, but must be
@@ -102,6 +116,16 @@ Here is a quick overview:
   There are also observers of the current direction mux setting 
   (`aospi_dirmux_is_loop()` and `aospi_dirmux_is_bidir()`).
 
+- For statistics, the library keeps track of the number of telegrams sent 
+  (with `aospi_tx()` and `aospi_txrx()`) or received (with `aospi_txrx()`).
+  These counters can be retrieved with `aospi_txcount_get()` respectively `aospi_rxcount_get()`.
+  These counter can be reset to 0 with `aospi_txcount_reset()` and `aospi_rxcount_reset()`.
+
+- For measurements, two functions are provided. The function `aospi_txrx_us()`
+  returns the round trip time of the last `aospi_txrx()`. The function 
+  `aospi_txrx_hops()` returns an estimate of the number of hops (telegram 
+  forwards by intermediate nodes) were needed by the last the last `aospi_txrx()`.
+  
 - To test the (OSP32) PCB the following functions are provided. The first pair
   `aospi_outoena_set()`/`aospi_outoena_get()` allows testing the control line of 
   the output enable of the outgoing level shifter, the second pair 
@@ -386,7 +410,31 @@ This chapter explains the execution architecture in more detail.
   last node is connected to the SPI slave, and a mux selects the active connection.
   
   ![BiDir](extras/dirosp32.drawio.png)
+
+
+### Telegram timing
+
+- Below diagram is the timing of one telegram to one node.
+  The diagram focuses on the OSP node that receives the command,
+  executes the command and (optionally) gives a response.
+
+  ![Timing node](extras/telegram-timing.drawio.png)
+
+- The resulting system trip timing, not in one node but in a chain, is 
+  depicted below. Here we also look at the nodes before and after the 
+  executing node.
+
+  ![Timing chain](extras/timing.drawio.png)
   
+- We have temporarily modified `aospi.cpp` to pulse OENA to flag
+  the moments the round trip timing measurements are made in the driver.
+  
+  This allows us to validate the theoretical timings with reality.
+  There is a bit of time cause introduced by software, but the match
+  is quite accurate, see below trace.
+  
+  ![OSP32overview](extras/roundtriptiming.png)
+
 
 ## Implementation notes
 
@@ -500,19 +548,10 @@ This chapter explains the execution architecture in more detail.
     wait (response length - counter)/2.4MHz
   ```
   
-- This is the timing of one telegram to one node.
-  The diagram focuses on the OSP node that receives the command,
-  executes the command and (optionally) gives a response.
-
-  ![Timing node](extras/telegram-timing.drawio.png)
-
-  This is the resulting system trip timing, in a chain, where we also look
-  at the nodes before and after the executing node.
-
-  ![Timing chain](extras/timing.drawio.png)
-  
 - The time out of 17.4 ms used in the code is based on the worst-case chain (longest OSP chain in BiDir)
   and the worst-case command (I2C read of 8 bytes with slowest clock).
+  
+
 
 
 ## Traces
@@ -587,9 +626,17 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
+- **2024 aug 28, 0.5.0**
+  - Added new api functions `aospi_txrx_us()` and `aospi_txrx_hops()`.
+  - Added example `aospi_time.ino`, using the new api functions.
+  - Added round trip timing trace picture.
+  - Added links in `readme.md` for all example sketches.
+  - Extended "System overview" (and detailed the image).
+  - Fixed warning on `printf` format specifier in `aospi_txrx.ino`.
+
 - **2024 aug 9, 0.4.2**
-   - Added "System overview" to `readme.md`.
-   - Small update to `dirosp32.drawio.png`.
+  - Added "System overview" to `readme.md`.
+  - Small update to `dirosp32.drawio.png`.
 
 - **2024 August 5, 0.4.1**
   - Corrected landing page link in readme.md from aotop to OSP_aotop.

@@ -27,7 +27,7 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "0.4.2"
+#define AOSPI_VERSION "0.5.0"
 
 
 // OSP uses telegrams of max 12 bytes
@@ -42,6 +42,12 @@ void aospi_init();
 aoresult_t aospi_tx(const uint8_t * tx, int txsize); 
 // Sends the `txsize` bytes in buffer `tx` to the first OSP node. Waits for a response telegram and stores those bytes in buffer `rx` with size `rxsize`.
 aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize=0); 
+
+
+//Returns the round trip time for the last `aospi_txrx()` call.
+uint32_t aospi_txrx_us();
+//Returns an estimate of the number of hops a command telegram and it response need in a bidirectional round trip.
+uint32_t aospi_txrx_hops(int t_extra=5);
 
 
 // Sets the direction mux so that the last OSP node is connected to the SPI slave (for an OSP chain using Loop).

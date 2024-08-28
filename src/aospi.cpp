@@ -224,6 +224,75 @@ static void IRAM_ATTR aospi_in_clockcount_isr() { // ISR must be in IRAM
 #define spiin_clockcount_reset() do aospi_in_clockcount=0; while(0)
 
 
+static uint32_t aospi_txrx_us_;
+/*!
+    @brief  Returns the (round) trip time for the last call to `aospi_txrx()`.
+    @return Time in us (micro seconds).
+    @note   This the time recorded in the last call to `aospi_txrx()` so 
+            that must precede the call to this function.
+    @note   Since `aoosp_tx()` does not send a response, the MCU can not
+            measure the trip time of those send-only telegrams.
+    @note   Trip time is available for BiDir and for Loop.
+    @note   The trip time is recorded starting with the first bit tx'ed by 
+            the MCU and ending with the last bit rx'ed by the MCU.
+    @note   The trip time (t_trip) includes sending the telegram sized txsize 
+            (t_cmd) and receiving the response sized rxsize (t_resp), but 
+            also includes the execution time of the command (t_exec) and the 
+            forwarding time (t_fwd) of all intermediate nodes (k). 
+            In some cases the executing node introduces a delay (t_delay), 
+            typically 5us for SAID in BiDir, 0 otherwise.
+    @note   For a BiDir trip the trip time is as follows:
+            t_trip = k×t_fwd + t_cmd + t_exec + t_delay + t_resp + k×t_fwd
+    @note   For a Loop trip the trip time on a chain of n nodes is as follows:
+            t_trip = (n-1)×t_fwd + t_cmd + t_exec + t_delay + t_resp
+    @note   The call is non destructive; it keeps its value until it is
+            overwritten by a next call to `aospi_txrx()`.  
+*/
+uint32_t aospi_txrx_us() {
+  return aospi_txrx_us_;
+}
+
+
+static uint32_t aospi_txrx_size_;
+/*!
+    @brief  Returns an estimate of the number of hops a command telegram and
+            its response telegram need in a bidirectional round trip.
+    @param  t_extra
+            The sum of t_exec, the execution time of a command telegram, 
+            typically 0; and t_delay, the artificial delay introduced by the 
+            node, typically 5 for SAID in BiDir, 0 otherwise. 
+            Default value is 5. Unit is micro seconds.
+    @return Number of hops.
+    @note   This returns the number of hops of the last call to `aospi_txrx()` 
+            so that must precede the call to this function.
+    @note   The number of hops is the number of OSP nodes the message needs
+            to travel. In BiDir, the number of hops to travel to the n-th 
+            node and back is 2(n-1). In other words hops/2+1 estimates the 
+            address of the node.
+    @note   The returned estimation of the number of hops is based on the 
+            round trip time `aospi_txrx_us()` and the size of the command and 
+            response telegrams of the last `aospi_txrx()`.
+            The caller must pass t_extra which is defined as t_exec+t_delay.
+            Since t_exec is usually 0 and t_delay is 5 for SAID in BiDir,
+            the default value for t_extra is 5.
+    @note   Every hop introduces a propagation delay of t_forward=7.5us.
+            This is the basis for estimating the number of hops.
+    @note   The call is non destructive; it keeps it value until it is
+            overwritten by a next call to `aospi_txrx()`.  
+*/
+uint32_t aospi_txrx_hops(int t_extra) {
+  // *8 for bits-to-bytes, *10 to get rid of dec point, +12 for rounding, bit rate 2.4Mhz;
+  // t_proc = t_cmd+(t_exec+t_delay)+t_resp = t_cmd+t_extra+t_resp
+  uint32_t t_proc = (aospi_txrx_size_*8*10+12)/24 + t_extra; 
+  if( t_proc>aospi_txrx_us_ ) return 0;
+  // Time for all hops together
+  uint32_t t_hop = aospi_txrx_us_ - t_proc;
+  // t_fwd=7.5us; (t_hop+7.5/2)/7.5 = (t_hop*4+7.5/2*4) / 7.5*4 = (t_hop*4+15) / 30
+  return (t_hop*4+15)/30;
+}
+
+
+
 // The SPI IN slave object
 static ESP32SPISlave aospi_in;
 
@@ -316,7 +385,8 @@ static __attribute__((aligned(4))) uint8_t aospi_in_buf[AOSPI_TELE_MAXSIZE];
     @note   If caller knows how many bytes will be received, set `rxsize` to
             that amount and set `actsize` pointer to NULL. 
     @note   If caller does not knows how many bytes will be received, set 
-            `rxsize` to largest possible telegram (ie 12) and pass an `actsize`. 
+            `rxsize` to largest possible telegram (ie AOSPI_TELE_MAXSIZE) 
+            and pass an `actsize`. 
 */
 aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize) {
   AORESULT_ASSERT( aospi_inited );
@@ -331,6 +401,8 @@ aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, 
   aospi_in.queue(NULL, aospi_in_buf, AOSPI_TELE_MAXSIZE ); // aospi_in doesn't send data to master (NULL), it only receives (aospi_in_buf)
   aospi_in.trigger();
 
+  aospi_txrx_us_= micros(); // record start time
+  
   // aospi_tx() inlined here for speed
   aospi_out.beginTransaction(SPISettings(AOSPI_OUT_FREQ, MSBFIRST, SPI_MODE0)); // TX uses mode 0
   AOSPI_OUT_OENA_SET(); // enable level shifter output - fast implementation of digitalWrite(AOSPI_OUT_OENA, HIGH)
@@ -351,12 +423,14 @@ aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, 
     // Now the background reception is running; have time to end the inlined spi_tx()
     aospi_out.endTransaction();
 
-    // Wait till data starts arriving: wait till first bit/clock
+    // Wait till data starts arriving (ie wait till first bit/clock)
     uint32_t start = micros();
     while( aospi_in_clockcount==0 && micros()-start<AOSPI_IN_TIMEOUT_US ) {
       // wait for a clock interrupt
     };
     // Wait till whole telegram should have been received (all bits/clocks)
+    // todo: experiments show that (1) not all clocks are picked up by ISR, (2) once while loop ends aospi_in_clockcount will not change anymore. Don't understand why. This means that the delay is not needed.
+    aospi_txrx_us_= micros() - aospi_txrx_us_ - 11; // record end time (should be after delay, but see line above) // -11 is sw overhead
     uint32_t tele_us = ((rxsize*8)-aospi_in_clockcount)/2; // one byte is 8 clocks a 1/2us (==2Mhz)
     delayMicroseconds(tele_us);
 
@@ -373,12 +447,15 @@ aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, 
   int rxact= aospi_in.numBytesReceived();
   memcpy(rx,aospi_in_buf,min(rxact,rxsize));
 
+  aospi_txrx_size_ = txsize + rxact;
+
   // Return result
   if( aospi_in_clockcount==0      ) return aoresult_spi_noclock; // no clocks seen (the telegram might still have been received, but this still took too much time, so we flag that as an error)
   if( actsize==0 && rxact!=rxsize ) return aoresult_spi_length;  // wrong-num-bytes
   if( actsize!=0 ) *actsize=rxact;
   return aoresult_ok; // rx successful
 }
+// todo: multiple aospi_txrx's in a row have a 10ms wait now and then is this caused by 'slave' lib using freeRTOS?
 
 
 // === Direction MUX ========================================================
