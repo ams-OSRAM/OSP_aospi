@@ -279,6 +279,9 @@ static uint32_t aospi_txrx_size_;
             This is the basis for estimating the number of hops.
     @note   The call is non destructive; it keeps it value until it is
             overwritten by a next call to `aospi_txrx()`.  
+    @note   Due to the asynchronous behavior in the daisy chain communication 
+            the returned number of hops has a variance which increases with 
+            the distance to the MCU.
 */
 uint32_t aospi_txrx_hops(int t_extra) {
   // *8 for bits-to-bytes, *10 to get rid of dec point, +12 for rounding, bit rate 2.4Mhz;

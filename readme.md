@@ -105,9 +105,9 @@ The header contains little documentation; for that see the
 
 Here is a quick overview:
 
-- `aospi_tx()` sends a command telegram.
+- `aospi_tx(...)` sends a command telegram.
 
-- `aospi_txrx()` sends a command telegram and receives the response.
+- `aospi_txrx(...)` sends a command telegram and receives the response.
 
 - `aospi_dirmux_set_loop()` and `aospi_dirmux_set_bidir()` set the direction 
   mux to Loop respectively BiDir. One of these functions is typically 
@@ -123,13 +123,13 @@ Here is a quick overview:
 
 - For measurements, two functions are provided. The function `aospi_txrx_us()`
   returns the round trip time of the last `aospi_txrx()`. The function 
-  `aospi_txrx_hops()` returns an estimate of the number of hops (telegram 
-  forwards by intermediate nodes) were needed by the last the last `aospi_txrx()`.
+  `aospi_txrx_hops(...)` returns an estimate of the number of hops (telegram 
+  forwards by intermediate nodes) that were needed by the last `aospi_txrx()`.
   
-- To test the (OSP32) PCB the following functions are provided. The first pair
-  `aospi_outoena_set()`/`aospi_outoena_get()` allows testing the control line of 
+- To testing the (OSP32) PCB the following functions are provided. The first pair
+  `aospi_outoena_set(...)`/`aospi_outoena_get()` allows testing the control line of 
   the output enable of the outgoing level shifter, the second pair 
-  `aospi_inoena_set()`/`aospi_inoena_get()` allows testing the control line of 
+  `aospi_inoena_set(...)`/`aospi_inoena_get()` allows testing the control line of 
   the output enable of the incoming level shifter. Do not use during regular
   operation.
 
@@ -625,6 +625,11 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2024 sep 5, 0.5.1**
+  - API section in readme now shows parameter names.
+  - Text updates in `readme.md`.
+  - Text update in documentation of `aospi_txrx_hops()`.
 
 - **2024 aug 28, 0.5.0**
   - Added new api functions `aospi_txrx_us()` and `aospi_txrx_hops()`.
