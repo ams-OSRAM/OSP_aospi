@@ -36,13 +36,16 @@ The demo runs on the OSP32 board. It only uses the first SAID, and
 does not receive responses, so no demo board needs to be attached.
 In Arduino select board "ESP32S3 Dev Module".
 
+BEHAVIOR
+The first RGB (L1.0) of SAID OUT blinks magenta and green.
+
 OUTPUT
 Welcome to aospi_tx.ino
-version: result 0.1.10 spi 0.2.7
+version: result 0.4.1 spi 0.5.1
 spi: init
 
 reset(0x000) ok
-initloop(0x001) ok
+initbidir(0x001) ok
 clrerror(0x000) ok
 goactive(0x000) ok
 setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok

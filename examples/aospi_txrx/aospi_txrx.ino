@@ -45,33 +45,29 @@ in OUT of that demo board).
 Set the #if in setup() to match the loop/bidir choice made for the hardware.
 In Arduino select board "ESP32S3 Dev Module".
 
+BEHAVIOR
+The first RGB (L1.0) of SAID OUT blinks magenta and green.
+
 OUTPUT
 Welcome to aospi_txrx.ino
-version: result 0.1.10 spi 0.2.7
+version: result 0.4.1 spi 0.5.1
 spi: init
 
 reset(0x000) ok
-initbidir(0x001) ok -> 2 nodes
+initloop(0x001) ok -> 9 nodes
 clrerror(0x000) ok
 goactive(0x000) ok
 setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
 telegram count: tx 5 rx 1
 
-mode bidir
+mode loop
 identify(0x001) ok -> id 40
 identify(0x001) ok -> 00 00 00 40
 setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
 setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
-mode bidir
+
+mode loop
 identify(0x001) ok -> id 40
-identify(0x001) ok -> 00 00 00 40
-setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
-setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
-mode bidir
-identify(0x001) ok -> id 40
-identify(0x001) ok -> 00 00 00 40
-setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
-setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
 ...
 */
 
@@ -169,7 +165,7 @@ void setup() {
     aospi_dirmux_set_bidir(); // On OSP32 board dir led is now green
     tele_initbidir();
   #else
-    aospi_dirmux_set_loop(1); // On OSP32 board dir led is now yellow
+    aospi_dirmux_set_loop(); // On OSP32 board dir led is now yellow
     tele_initloop();
   #endif
   tele_clrerror();

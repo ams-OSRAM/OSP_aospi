@@ -37,87 +37,89 @@ The second aspect is the impact of longer telegrams.
 
 HARDWARE
 The demo runs on the OSP32 board. It expects the SAIDlooker
-board to be connected to the OUT and IN connector, so that 
-a chain of 5 SAIDs is established.
+board to be connected to the OUT and IN connector of OSP32 (loop), 
+so that a chain of 5 SAIDs is established.
 In Arduino select board "ESP32S3 Dev Module".
+
+BEHAVIOR
+Nothing to be seen, firmware only retrieves status and identify.
 
 OUTPUT
 Welcome to aospi_time.ino
-version: result 0.3.0 spi 0.4.2
+version: result 0.4.1 spi 0.5.1
 spi: init
 
 reset(000) ok
-initbidir(001) ok -> 5 nodes [131 us, hops 12]
+initbidir(001) ok -> 5 nodes [132 us, hops 13]
 clrerror(000) ok
 goactive(000) ok
 
-readstat(001) ok -> stat 80 [35 us, hops 0]
-readstat(001) ok -> stat 80 [35 us, hops 0]
 readstat(001) ok -> stat 80 [34 us, hops 0]
 readstat(001) ok -> stat 80 [35 us, hops 0]
 readstat(001) ok -> stat 80 [34 us, hops 0]
+readstat(001) ok -> stat 80 [34 us, hops 0]
+readstat(001) ok -> stat 80 [34 us, hops 0]
+readstat(001) ok -> stat 80 [34 us, hops 0]
 readstat(001) ok -> stat 80 [35 us, hops 0]
-readstat(001) ok -> stat 80 [35 us, hops 0]
-readstat(001) ok -> stat 80 [35 us, hops 0]
+readstat(001) ok -> stat 80 [34 us, hops 0]
 readstat(001) ok -> stat 80 [34 us, hops 0]
 readstat(001) ok -> stat 80 [35 us, hops 0]
 
-readstat(002) ok -> stat 80 [49 us, hops 2]
 readstat(002) ok -> stat 80 [50 us, hops 2]
 readstat(002) ok -> stat 80 [49 us, hops 2]
+readstat(002) ok -> stat 80 [48 us, hops 2]
+readstat(002) ok -> stat 80 [50 us, hops 2]
+readstat(002) ok -> stat 80 [50 us, hops 2]
+readstat(002) ok -> stat 80 [48 us, hops 2]
+readstat(002) ok -> stat 80 [49 us, hops 2]
 readstat(002) ok -> stat 80 [49 us, hops 2]
 readstat(002) ok -> stat 80 [50 us, hops 2]
-readstat(002) ok -> stat 80 [49 us, hops 2]
-readstat(002) ok -> stat 80 [50 us, hops 2]
-readstat(002) ok -> stat 80 [50 us, hops 2]
-readstat(002) ok -> stat 80 [50 us, hops 2]
-readstat(002) ok -> stat 80 [50 us, hops 2]
+readstat(002) ok -> stat 80 [48 us, hops 2]
 
+readstat(003) ok -> stat 80 [65 us, hops 4]
+readstat(003) ok -> stat 80 [64 us, hops 4]
+readstat(003) ok -> stat 80 [65 us, hops 4]
+readstat(003) ok -> stat 80 [62 us, hops 4]
 readstat(003) ok -> stat 80 [63 us, hops 4]
-readstat(003) ok -> stat 80 [65 us, hops 4]
-readstat(003) ok -> stat 80 [64 us, hops 4]
-readstat(003) ok -> stat 80 [64 us, hops 4]
-readstat(003) ok -> stat 80 [65 us, hops 4]
 readstat(003) ok -> stat 80 [64 us, hops 4]
 readstat(003) ok -> stat 80 [64 us, hops 4]
 readstat(003) ok -> stat 80 [63 us, hops 4]
-readstat(003) ok -> stat 80 [65 us, hops 4]
-readstat(003) ok -> stat 80 [65 us, hops 4]
+readstat(003) ok -> stat 80 [63 us, hops 4]
+readstat(003) ok -> stat 80 [64 us, hops 4]
 
 readstat(004) ok -> stat 80 [79 us, hops 6]
 readstat(004) ok -> stat 80 [80 us, hops 6]
 readstat(004) ok -> stat 80 [77 us, hops 6]
-readstat(004) ok -> stat 80 [78 us, hops 6]
-readstat(004) ok -> stat 80 [78 us, hops 6]
-readstat(004) ok -> stat 80 [80 us, hops 6]
 readstat(004) ok -> stat 80 [79 us, hops 6]
 readstat(004) ok -> stat 80 [79 us, hops 6]
 readstat(004) ok -> stat 80 [78 us, hops 6]
+readstat(004) ok -> stat 80 [77 us, hops 6]
+readstat(004) ok -> stat 80 [79 us, hops 6]
+readstat(004) ok -> stat 80 [79 us, hops 6]
 readstat(004) ok -> stat 80 [78 us, hops 6]
 
+readstat(005) ok -> stat 80 [95 us, hops 8]
+readstat(005) ok -> stat 80 [95 us, hops 8]
+readstat(005) ok -> stat 80 [95 us, hops 8]
+readstat(005) ok -> stat 80 [93 us, hops 8]
+readstat(005) ok -> stat 80 [93 us, hops 8]
 readstat(005) ok -> stat 80 [94 us, hops 8]
+readstat(005) ok -> stat 80 [95 us, hops 8]
+readstat(005) ok -> stat 80 [93 us, hops 8]
 readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
-readstat(005) ok -> stat 80 [94 us, hops 8]
+readstat(005) ok -> stat 80 [95 us, hops 8]
 
-identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
+identify(001) ok -> id 40 [46 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
 identify(001) ok -> id 40 [45 us, hops 0]
 identify(001) ok -> id 40 [44 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
 identify(001) ok -> id 40 [44 us, hops 0]
-identify(001) ok -> id 40 [44 us, hops 0]
+identify(001) ok -> id 40 [45 us, hops 0]
 
-identify(002) ok -> id 40 [58 us, hops 2]
 identify(002) ok -> id 40 [58 us, hops 2]
 identify(002) ok -> id 40 [59 us, hops 2]
 identify(002) ok -> id 40 [58 us, hops 2]
@@ -125,61 +127,62 @@ identify(002) ok -> id 40 [58 us, hops 2]
 identify(002) ok -> id 40 [58 us, hops 2]
 identify(002) ok -> id 40 [59 us, hops 2]
 identify(002) ok -> id 40 [58 us, hops 2]
+identify(002) ok -> id 40 [59 us, hops 2]
 identify(002) ok -> id 40 [58 us, hops 2]
-identify(002) ok -> id 40 [58 us, hops 2]
+identify(002) ok -> id 40 [59 us, hops 2]
 
+identify(003) ok -> id 40 [75 us, hops 4]
 identify(003) ok -> id 40 [73 us, hops 4]
+identify(003) ok -> id 40 [72 us, hops 4]
+identify(003) ok -> id 40 [75 us, hops 4]
 identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
-identify(003) ok -> id 40 [73 us, hops 4]
+identify(003) ok -> id 40 [72 us, hops 4]
+identify(003) ok -> id 40 [75 us, hops 4]
+identify(003) ok -> id 40 [74 us, hops 4]
 identify(003) ok -> id 40 [73 us, hops 4]
 identify(003) ok -> id 40 [73 us, hops 4]
 
+identify(004) ok -> id 40 [90 us, hops 6]
+identify(004) ok -> id 40 [89 us, hops 6]
+identify(004) ok -> id 40 [90 us, hops 6]
 identify(004) ok -> id 40 [89 us, hops 6]
 identify(004) ok -> id 40 [88 us, hops 6]
-identify(004) ok -> id 40 [87 us, hops 6]
-identify(004) ok -> id 40 [88 us, hops 6]
-identify(004) ok -> id 40 [87 us, hops 6]
-identify(004) ok -> id 40 [88 us, hops 6]
-identify(004) ok -> id 40 [88 us, hops 6]
 identify(004) ok -> id 40 [89 us, hops 6]
-identify(004) ok -> id 40 [88 us, hops 6]
-identify(004) ok -> id 40 [88 us, hops 6]
+identify(004) ok -> id 40 [89 us, hops 6]
+identify(004) ok -> id 40 [90 us, hops 6]
+identify(004) ok -> id 40 [90 us, hops 6]
+identify(004) ok -> id 40 [90 us, hops 6]
 
-identify(005) ok -> id 40 [103 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
+identify(005) ok -> id 40 [104 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
 identify(005) ok -> id 40 [104 us, hops 8]
 identify(005) ok -> id 40 [104 us, hops 8]
-identify(005) ok -> id 40 [103 us, hops 8]
-identify(005) ok -> id 40 [104 us, hops 8]
-identify(005) ok -> id 40 [104 us, hops 8]
-identify(005) ok -> id 40 [104 us, hops 8]
-identify(005) ok -> id 40 [104 us, hops 8]
-identify(005) ok -> id 40 [104 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
+identify(005) ok -> id 40 [105 us, hops 8]
 identify(005) ok -> id 40 [104 us, hops 8]
 
 The number of hops should be twice the node's address
 
 Tforward is ~7.5us; in bidir this should add 15us per node
-  readstat(001) average 35 us
-  readstat(002) average 50 us; delta 15 us
-  readstat(003) average 64 us; delta 14 us
+  readstat(001) average 34 us
+  readstat(002) average 49 us; delta 15 us
+  readstat(003) average 64 us; delta 15 us
   readstat(004) average 79 us; delta 15 us
   readstat(005) average 94 us; delta 15 us
-  identify(001) average 44 us
-  identify(002) average 58 us; delta 14 us
-  identify(003) average 73 us; delta 15 us
-  identify(004) average 88 us; delta 15 us
-  identify(005) average 104 us; delta 16 us
+  identify(001) average 45 us
+  identify(002) average 58 us; delta 13 us
+  identify(003) average 74 us; delta 16 us
+  identify(004) average 89 us; delta 15 us
+  identify(005) average 105 us; delta 16 us
 Payload increase from 1 to 4 bytes, is 24 bits a 2.4MHz, should be 10 us
-  identify(001) readstat(001) delta 9 us
-  identify(002) readstat(002) delta 8 us
-  identify(003) readstat(003) delta 9 us
-  identify(004) readstat(004) delta 9 us
-  identify(005) readstat(005) delta 10 us
+  identify(001) readstat(001) delta 11 us
+  identify(002) readstat(002) delta 9 us
+  identify(003) readstat(003) delta 10 us
+  identify(004) readstat(004) delta 10 us
+  identify(005) readstat(005) delta 11 us
 */
 
 
