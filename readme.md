@@ -5,7 +5,7 @@ is one of the **aolibs**; short for Arduino OSP libraries from ams-OSRAM.
 This suite implements support for chips that use the Open System Protocol, 
 like the AS1163 ("SAID") or the OSIRE E3731i ("RGBi").
 The landing page for the _aolibs_ is on 
-[GitHub](https://github.com/ams-OSRAM-Group/OSP_aotop).
+[GitHub](https://github.com/ams-OSRAM/OSP_aotop).
 
 
 ## Introduction
@@ -350,7 +350,7 @@ The _aospi_ library comes with a [copy](src/slave) of ESP32SPISlave included,
 to ensure there are no versioning issues. The imported library is actually 
 a single h-file (with code).
 
-![Modules](extras/modules.drawio.png)
+![Modules](extras/aospi-modules.drawio.png)
 
 The `aospi.cpp` wraps the master and slave driver, with code to handle the 
 level shifters, selector, slave select, etc.
@@ -655,17 +655,24 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
-- **2024 sep 10, 0.5.2**
+- **2024 October 8, 0.5.4**
+  - `src/slave/*` line endings changed from LF to CR+LF.
+
+- **2024 October 7, 0.5.3**
+  - Prefixed `modules.drawio.png` with library short name.
+  - Moved domain from `github.com/ams-OSRAM-Group` to `github.com/ams-OSRAM`.
+
+- **2024 September 10, 0.5.2**
   - Changes in `readme.md`.
   - Fixed Bug in `aospi_txrx`; function `aospi_dirmux_set_loop()` no longer needs parameter.
   - Added BEHAVIOR section to explanation in examples.
   
-- **2024 sep 5, 0.5.1**
+- **2024 September 5, 0.5.1**
   - API section in readme now shows parameter names.
   - Text updates in `readme.md`.
   - Text update in documentation of `aospi_txrx_hops()`.
 
-- **2024 aug 28, 0.5.0**
+- **2024 August 28, 0.5.0**
   - Added new api functions `aospi_txrx_us()` and `aospi_txrx_hops()`.
   - Added example `aospi_time.ino`, using the new api functions.
   - Added round trip timing trace picture.
@@ -673,7 +680,7 @@ The figure below shows details of the INITLOOP command and response.
   - Extended "System overview" (and detailed the image).
   - Fixed warning on `printf` format specifier in `aospi_txrx.ino`.
 
-- **2024 aug 9, 0.4.2**
+- **2024 August 9, 0.4.2**
   - Added "System overview" to `readme.md`.
   - Small update to `dirosp32.drawio.png`.
 
