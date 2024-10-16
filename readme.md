@@ -142,6 +142,31 @@ Here is a quick overview:
 - Finally, there is the macro `AOSPI_VERSION`, which identifies the version of the library.
 
 
+## Telegram dissector
+
+This library comes with a small Python program that dissects 
+a byte array into telegram fields, checks CRC and pretty prints
+all results. See [telegram](python/telegram) for instructions. 
+
+This is an example of a pretty printed telegram,
+in this case the reply for an initbidir of a chain of length 5.
+
+```
+(env) OSP_aospi\python\telegram>run A0 15 02 6F 50 30
+          +---------------+---------------+---------------+---------------+---------------+---------------+
+byteval   |      A0       |      15       |      02       |      6F       |      50       |      30       |
+byteix    |0 0 0 0 0 0 0 0|1 1 1 1 1 1 1 1|2 2 2 2 2 2 2 2|3 3 3 3 3 3 3 3|4 4 4 4 4 4 4 4|5 5 5 5 5 5 5 5|
+bitix     |7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|
+bitval    |1 0 1 0 0 0 0 0|0 0 0 1 0 1 0 1|0 0 0 0 0 0 1 0|0 1 1 0 1 1 1 1|0 1 0 1 0 0 0 0|0 0 1 1 0 0 0 0|
+          +-------+-------+-----------+---+-+-------------+-------------------------------+---------------+
+field     |preambl|      address      | psi |   command   |            payload            |      crc      |
+bin       | 1010  |    0000000101     | 010 |   0000010   |   01101111    :   01010000    |   00110000    |
+hex       |  0xA  |       0x005       | 0x2 |    0x02     |     0x6F      :     0x50      |   0x30 (ok)   |
+meaning   |   -   |         5         |  2  |  initbidir  |      111      :      80       |    48 (ok)    |
+          +-------+-------------------+-----+-------------+-------------------------------+---------------+
+```
+
+
 ## Board design
 
 The _aospi_ library assumes presence of certain peripherals and connections.
@@ -655,6 +680,9 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
+- **2024 October 16, 0.5.5**
+  - Added telegram dissector with CRC computation (in Python).
+  
 - **2024 October 8, 0.5.4**
   - `src/slave/*` line endings changed from LF to CR+LF.
 

@@ -1,0 +1,1 @@
+rmdir env /s /q
