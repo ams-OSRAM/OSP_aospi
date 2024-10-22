@@ -202,14 +202,17 @@ when telegrams are being send over SCLK/MOSI.
 
 > Sending command telegrams (TX) uses the so-called _OUT_ pipe (perspective of the ESP).
 
-There are in total seven lines (bottom part of drawing) for receiving response telegrams: 
-clock (SCLK), data (MOSI), enable (ONEA);
-and also one to tap clock interrupts (CINT).
-Furthermore the SPI slave needs a select line (SSEL), 
-and since the OSP node doesn't have that, the ESP generates it (MSEL).
+There are in total seven lines (bottom part of drawing) for receiving 
+response telegrams: clock (SCLK), data (MOSI), enable (ONEA); and also 
+one tap to monitor the clock (CINT) - this used to be done with an 
+interrupt, hence the now bad name.
+
+Furthermore the SPI slave in the ESP needs as input a select line (SSEL), 
+and since the OSP node doesn't provide that, the ESP generates it (MSEL).
 Finally, there is a GPIO line (DIRL) that controls the BiDir or Loop mode -
 it controls whether the IN.BIDIR or the IN.LOOP level shifter has its
-output enabled (towards the ESP). This implements a direction mux.
+output enabled (towards the ESP) when OENA asserts. 
+This implements a _direction mux_.
 
 > Receiving response telegrams (RX) uses the so-called _IN_ pipe (perspective of the ESP).
 
@@ -480,8 +483,8 @@ This chapter explains the execution architecture in more detail.
   the moments the round trip timing measurements are made in the driver.
   
   This allows us to validate the theoretical timings with reality.
-  There is a bit of time cause introduced by software, but the match
-  is quite accurate, see below trace.
+  There is a bit of time delay introduced by software 
+  (`t_swpre` and `t_swpost`), but the match is quite accurate, see below trace.
   
   ![OSP32overview](extras/roundtriptiming.png)
 
@@ -589,18 +592,16 @@ This chapter explains the execution architecture in more detail.
   bytes. If MSEL would de-assert early, the SPI driver would return a 
   transaction (byte buffer) of length 0.
   
-  To solve this there is another line, a tap on SCLK to GPIO pin CINT.
-  An interrupt service routine attached to that counts clock ticks.
+  To solve this there is another line, a tap on SCLK to GPIO pin named CINT.
+  A busy wait checks for the first clock flip on CINT.
   Since response telegram length is given (max 12 bytes or 96 clock ticks) 
-  this tells when to de-assert MSEL once an interrupt for a clock tick has 
-  occurred.
+  this tells when to de-assert MSEL once this first flip is detected.
   
   The `wait for response` (above) is implemented as follows.
   
   ```
-    reset counter that counts clock tick (in ISR)
-    wait while counter stays zero but no longer than 17.4ms (timeout)
-    wait (response length - counter)/2.4MHz
+    wait for flip on CINT but no longer than 17.4ms (timeout)
+    wait num bytes in response *8 / 2.4MHz
   ```
   
 - The time out of 17.4 ms used in the code is based on the worst-case chain 
@@ -679,6 +680,10 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2024 October 22, 0.5.6**
+  - Telegram dissector (`python\telegram`) now shows casting mode.
+  - Replaced clock tapping mechanism in `aospi.cpp`; from ISR to polling (faster).
 
 - **2024 October 16, 0.5.5**
   - Added telegram dissector with CRC computation (in Python).

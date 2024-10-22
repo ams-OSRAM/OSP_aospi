@@ -184,14 +184,14 @@ aoresult_t aospi_tx(const uint8_t * tx, int txsize) {
 #define AOSPI_IN_MOSI       12
 #define AOSPI_IN_SSEL       47
 #define AOSPI_IN_MISO       -1
-// Output pin wired to AOSPI_IN_SSEL to control slave select
+// Output pin externally wired to AOSPI_IN_SSEL to control slave select
 #define AOSPI_IN_MSEL       21
-// We need to release MSEL, for this we tap the clock lines in an ISR
-#define AOSPI_IN_CINT        2
+// We need to release MSEL, for this we tap the clock line; SCLK is externally wired to CINT
+#define AOSPI_IN_CINT        2 
 // Finally, there are two extra pins in use to control the level shifters
 // Note: two uni-directional level shifters are used: one for first node (BIDIR), one for last (LOOP).
-// Note: The B-sides (3V3, MCU) are the ones that are en/disabled
-// Only one is enabled, AOSPI_IN_DIRL selects which, AOSPI_IN_OENA enables.
+// Note: The B-sides of level shifter (3V3, MCU side) are the ones that are en/disabled
+// Only one is enabled with AOSPI_IN_OENA, AOSPI_IN_DIRL selects which.
 #define AOSPI_IN_OENA        1 // Level-shifter output-enable
 #define AOSPI_IN_DIRL       14 // To select direction Loop (or BiDir)
 
@@ -202,6 +202,8 @@ aoresult_t aospi_tx(const uint8_t * tx, int txsize) {
 #define AOSPI_IN_OENA_SET()  do GPIO.out_w1ts = 1UL << AOSPI_IN_OENA; while(0)
 #define AOSPI_IN_MSEL_CLR()  do GPIO.out_w1tc = 1UL << AOSPI_IN_MSEL; while(0)
 #define AOSPI_IN_MSEL_SET()  do GPIO.out_w1ts = 1UL << AOSPI_IN_MSEL; while(0)
+// digitalRead(AOSPI_IN_CINT) is too slow so we resort to register reads (GPIO.in.val for some ESP derivatives)
+#define AOSPI_IN_CINT_GET() (GPIO.in & (1<<AOSPI_IN_CINT))
 
 
 // Select which of the two SPI controllers of the ESP to use for IN
@@ -214,14 +216,6 @@ aoresult_t aospi_tx(const uint8_t * tx, int txsize) {
 //   1400+2×8×(k-1) us for an answer (in BiDir).
 // The maximum number is BiDir with a longest chain of 1002 nodes.
 #define AOSPI_IN_TIMEOUT_US      (1400+2*8UL*(1002-1))
-
-
-// To determine when to release MSEL, we tap the clock line and count rising edges
-static volatile int aospi_in_clockcount;
-static void IRAM_ATTR aospi_in_clockcount_isr() { // ISR must be in IRAM
-  aospi_in_clockcount= aospi_in_clockcount + 1; // ++ deprecated on volatile
-}
-#define spiin_clockcount_reset() do aospi_in_clockcount=0; while(0)
 
 
 static uint32_t aospi_txrx_us_;
@@ -253,7 +247,7 @@ uint32_t aospi_txrx_us() {
 }
 
 
-static uint32_t aospi_txrx_size_;
+static int aospi_txrx_size_;
 /*!
     @brief  Returns an estimate of the number of hops a command telegram and
             its response telegram need in a bidirectional round trip.
@@ -290,8 +284,9 @@ uint32_t aospi_txrx_hops(int t_extra) {
   if( t_proc>aospi_txrx_us_ ) return 0;
   // Time for all hops together
   uint32_t t_hop = aospi_txrx_us_ - t_proc;
-  // t_fwd=7.5us; (t_hop+7.5/2)/7.5 = (t_hop*4+7.5/2*4) / 7.5*4 = (t_hop*4+15) / 30
-  return (t_hop*4+15)/30;
+  // t_fwd=7.5us; dividing t_hop by t_fwd gives number of hops (add 7.5/2 for rounding)
+  // (t_hop+7.5/2)/7.5 = (t_hop*100+3.75*100) / 7.5*100 = (t_hop*100+375) / 750
+  return (t_hop*100+375)/750;
 }
 
 
@@ -310,8 +305,9 @@ static void aospi_in_init() {
   // Slave deselected (active low)
   pinMode     (AOSPI_IN_MSEL, OUTPUT);
   digitalWrite(AOSPI_IN_MSEL, HIGH  ); // do not swap with previous line (e.g. aoosp_topo.ino breaks on resetinit)
-  // Clock interrupt counting
-  attachInterrupt(AOSPI_IN_CINT, aospi_in_clockcount_isr, RISING);
+  // Clock monitoring (to determine when to release MSEL, we tap the clock line)
+  // Clock tap was previously handled by interrupt (hence the name CINT, now polling)
+  pinMode     (AOSPI_IN_CINT, INPUT);
   // Disable level shifter output
   digitalWrite(AOSPI_IN_OENA, LOW   );
   pinMode     (AOSPI_IN_OENA, OUTPUT);
@@ -404,7 +400,8 @@ aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, 
   aospi_in.queue(NULL, aospi_in_buf, AOSPI_TELE_MAXSIZE ); // aospi_in doesn't send data to master (NULL), it only receives (aospi_in_buf)
   aospi_in.trigger();
 
-  aospi_txrx_us_= micros(); // record start time
+  // record start time
+  aospi_txrx_us_= micros(); 
   
   // aospi_tx() inlined here for speed
   aospi_out.beginTransaction(SPISettings(AOSPI_OUT_FREQ, MSBFIRST, SPI_MODE0)); // TX uses mode 0
@@ -420,45 +417,44 @@ aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, 
 
     // WARNING: can not 'return' until MSEL is de-asserted
     
-    // Start looking for spiin clocks (they mark arrival or a response)
-    spiin_clockcount_reset();
-    
     // Now the background reception is running; have time to end the inlined spi_tx()
     aospi_out.endTransaction();
 
-    // Wait till data starts arriving (ie wait till first bit/clock)
-    uint32_t start = micros();
-    while( aospi_in_clockcount==0 && micros()-start<AOSPI_IN_TIMEOUT_US ) {
-      // wait for a clock interrupt
+    // Wait till data starts arriving (ie wait till first clock line flip)
+    uint32_t start = micros(); // Capture start time for timeout
+    uint32_t cint = AOSPI_IN_CINT_GET(); // Capture current state of clock line (via CINT tap)
+    int      clkflip = 0; // Clock flip detected
+    while( micros()-start<AOSPI_IN_TIMEOUT_US ) { // wait for first clock flip
+      if( cint!=AOSPI_IN_CINT_GET() ) { clkflip=1; break; }
     };
     // Wait till whole telegram should have been received (all bits/clocks)
-    // todo: experiments show that (1) not all clocks are picked up by ISR, (2) once while loop ends aospi_in_clockcount will not change anymore. Don't understand why. This means that the delay is not needed.
-    aospi_txrx_us_= micros() - aospi_txrx_us_ - 11; // record end time (should be after delay, but see line above) // -11 is sw overhead
-    uint32_t tele_us = ((rxsize*8)-aospi_in_clockcount)/2; // one byte is 8 clocks a 1/2us (==2Mhz)
+    uint32_t tele_us = (rxsize*800)/230; // 8 clocks per byte at 2.4MHz (both *100) - we assumed a slightly slower clock to be save.
     delayMicroseconds(tele_us);
+
+    // record end time; sw overhead is 7+4
+    aospi_txrx_us_= micros() - aospi_txrx_us_ - 11; 
 
   // Disable reception
   AOSPI_IN_MSEL_SET(); // stop chip select - fast implementation of digitalWrite(AOSPI_IN_MSEL, HIGH)
   AOSPI_IN_OENA_CLR(); // disable level shifter - fast implementation of digitalWrite(AOSPI_IN_OENA, LOW)
 
-  // Update counters
-  aospi_txcount++;
-  aospi_rxcount++;
-  
   // Get the received data
   if( aospi_in.numTransactionsInFlight()!=0 && aospi_in.numTransactionsCompleted()!=1 ) return aoresult_assert; // should not happen (buffers pending in flight)
   int rxact= aospi_in.numBytesReceived();
   memcpy(rx,aospi_in_buf,min(rxact,rxsize));
 
+  // Update stats counters
+  aospi_txcount++;
+  aospi_rxcount++;
   aospi_txrx_size_ = txsize + rxact;
 
   // Return result
-  if( aospi_in_clockcount==0      ) return aoresult_spi_noclock; // no clocks seen (the telegram might still have been received, but this still took too much time, so we flag that as an error)
-  if( actsize==0 && rxact!=rxsize ) return aoresult_spi_length;  // wrong-num-bytes
+  if( clkflip==0 ) return aoresult_spi_noclock; // no clocks seen (the telegram might still have been received, but this still took too much time, so we flag that as an error)
+  if( actsize==0 && rxact!=rxsize ) return aoresult_spi_length;  // wrong number of bytes received
   if( actsize!=0 ) *actsize=rxact;
   return aoresult_ok; // rx successful
 }
-// todo: multiple aospi_txrx's in a row have a 10ms wait now and then is this caused by 'slave' lib using freeRTOS?
+// todo: Multiple aospi_tx[rx]s in a row have a 10ms wait now and then. Is this caused by 'slave' lib using freeRTOS?
 
 
 // === Direction MUX ========================================================

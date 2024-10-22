@@ -129,6 +129,15 @@ void tele_setpwmchn_lo() {
 }
 
 
+void tele_readstat() {
+  const uint8_t identify[] = {0xA0, 0x04, 0x40, 0x11};
+  uint8_t resp[4+1];
+  aoresult_t result= aospi_txrx( identify, sizeof identify, resp, sizeof resp);
+  uint8_t stat = resp[3];
+  Serial.printf("readstat(0x001) %s -> stat 0x%02X\n", aoresult_to_str(result), stat );
+}
+
+
 void tele_identify() {
   const uint8_t identify[] = {0xA0, 0x04, 0x07, 0x3A};
   uint8_t resp[4+4];
@@ -138,8 +147,8 @@ void tele_identify() {
 }
 
 
-// Since the response size is know tele_identify() is the way to go.
-// If the response size would not be not known, the below tele_identify_alt() is the way to go.
+// Since the response size is known tele_identify() above is the way to go.
+// If the response size would not be not known, tele_identify_alt() below is the way to go.
 void tele_identify_alt() {
   const uint8_t identify[] = {0xA0, 0x04, 0x07, 0x3A};
   uint8_t resp[AOSPI_TELE_MAXSIZE];

@@ -7,7 +7,7 @@ ospcrcfunc = crcmod.mkCrcFun(0b100101111, initCrc=0, rev=False, xorOut=0)
 
 
 # Lookup table for PSI value to actual meaning
-psilookup=['0','1','2','3','4','-','6','8']
+psilookup=['0','1','2','3','4','rsv','6','8']
 
 
 # Lookup table for TID value to telegram name
@@ -290,7 +290,10 @@ def printdissection(telebytes) :
   print("meaning   ",end="")
   s= f"-"
   print( f"|{s:^{4*2-1}}", end="" )
-  s= f"{address10v}"
+  if address10v==0 : s="broadcast"
+  elif address10v< 0x3F0 : s=f"unicast({address10v})"
+  elif  address10v< 0x3FF : s=f"groupcast({address10v-0x3F0})"
+  else : s="error"
   print( f"|{s: ^{10*2-1}}", end="" )
   s= f"{psilookup[psi3v]}"
   print( f"|{s: ^{3*2-1}}", end="" )
