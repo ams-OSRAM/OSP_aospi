@@ -96,6 +96,13 @@ File > Examples > OSP 2wireSPI aospi > ...
   (adding the fast forwarding time for each intermediate node).
   The second aspect is the impact of longer telegrams.
 
+- **aospi_bringup** ([source](examples/aospi_bringup))  
+  This sketch just sends a RESET telegram to a node. We check whether that 
+  node forwards the telegram. The checking is done using a logic analyzer. 
+  A next step is sending INITBIDIR. It is an example of how to bring-up
+  new hardware/software. There is a more detailed [readme.md](readme.md) to
+  explain the process.
+
 
 ## API
 
@@ -126,7 +133,7 @@ Here is a quick overview:
   `aospi_txrx_hops(...)` returns an estimate of the number of hops (telegram 
   forwards by intermediate nodes) that were needed by the last `aospi_txrx()`.
   
-- To testing the (OSP32) PCB the following functions are provided. The first pair
+- To test the (OSP32) PCB the following functions are provided. The first pair
   `aospi_outoena_set(...)`/`aospi_outoena_get()` allows testing the control line of 
   the output enable of the outgoing level shifter, the second pair 
   `aospi_inoena_set(...)`/`aospi_inoena_get()` allows testing the control line of 
@@ -223,6 +230,7 @@ Some issues controlling OSP nodes deserve above normal attention.
 They are discussed in various sections of this document.
 
 - RESET issue
+- level shifter pull-ups issue
 - missing SSEL issue
 - dual master issue
 - different modes issue
@@ -266,11 +274,17 @@ SAID, dedicated to sending. This level shifter has several roles.
 The level shifter used on the OSP32 board is unidirectional, 
 but that is not very relevant.
 
-If the MCU has 5V SPI lines, a level shifter is not needed. However, the 
-second (dual masters) and third bullet (_RESET issue_) still need to be 
+If the MCU has 5V SPI lines, level shifting is not needed. However, the 
+second (_dual masters_) and third bullet (_RESET issue_) still need to be 
 covered. Both could be covered with a buffer. Another option is to 
 reconfigure the MCU pins after an SPI transaction, switching them to 
 tri-state.
+
+**Warning:** some level shifters have internal pull-ups. This leads to 
+a problem related to the _RESET issue_, the _level shifter pull-ups issue_.
+If the level shifter has internal pull-ups on the lines that connect to
+the SIO port, then, after a power on, the port will be configured for 
+CAN mode, effectively blocking the node from receiving any message.
 
 
 ### Two level shifters for receiving
@@ -320,7 +334,7 @@ the MOSI and SCLK line as inputs is sufficient).
 ### No level shifters - 5V MCU
 
 When the MCU is 5V, there is no reason to have level shifters.
-However, the RESET issue and  dual master issue still need to be solved.
+However, the _RESET issue_ and  _dual master issue_ still need to be solved.
 This could be solved by replacing the OUT level shifter by an external buffer 
 with tri-state output. If that one is controlled via the OENA line, there is 
 no need to change the library. The IN (either from BiDir or Loop) is 5V 
@@ -348,7 +362,7 @@ The left-most column assumes a 3V3 MCU, and thus uses level shifters.
 The three architectures in this column are supported by the aospi lib.
 
 The center column assume a 5V MCU, so no level shifters are needed.
-However due to the RESET issue and dual master issue, a buffer with tri-state 
+However due to the _RESET issue_ and _dual master issue_, a buffer with tri-state 
 is needed. For BiDir and Loop only rows, no mux is needed, so the IN buffers 
 can be avoided in the lower two rows. The three architectures in the center 
 column are supported by the aospi lib.
@@ -681,6 +695,10 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
+- **2024 November 29, 0.5.7**
+  - Added example `aospi_bringup.ino`.
+  - Text correction in `readme.md`; added _level shifter pull-ups issue_.
+
 - **2024 October 22, 0.5.6**
   - Telegram dissector (`python\telegram`) now shows casting mode.
   - Replaced clock tapping mechanism in `aospi.cpp`; from ISR to polling (faster).
@@ -729,7 +747,7 @@ The figure below shows details of the INITLOOP command and response.
 - **2024 July 7, 0.4.0**  
   - Arduino name changed from `OSP 2-wire SPI - aospi` to `OSP 2wireSPI aospi`.
   - Added link for traces.
-  - Added blue slave line in BiDir diagram (`dirbidir.drawio.png`) and green dashed OSP32 border line in OPS32 diagram (`dirosp32.drawio.png`).
+  - Added blue slave line in BiDir diagram (`dirbidir.drawio.png`) and green dashed OSP32 border line in OSP32 diagram (`dirosp32.drawio.png`).
   - Renamed dir `extra` to `extras`.
   - Small corrections in readme.md.
   - Added (for board testing) `aospi_outoena_set()`/`aospi_outoena_get()` and `aospi_inoena_set()`/`aospi_inoena_get()`.
