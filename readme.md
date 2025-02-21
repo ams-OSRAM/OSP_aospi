@@ -695,6 +695,11 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
+- **2025 February 21, 0.5.8**
+  - The SPI _slave_ driver upgraded to v0.6.5 to make it compile with esp32 board lib 3.1.1.
+  - Added USE mode note to `aospi_bringup.ino`.
+  - Text corrections in `python\telegram\readme.md` and `examples\aospi_bringup\readme.md`.
+
 - **2024 November 29, 0.5.7**
   - Added example `aospi_bringup.ino`.
   - Text correction in `readme.md`; added _level shifter pull-ups issue_.

@@ -28,8 +28,8 @@ node forwards the telegram. The checking is done using a logic analyzer.
 A next step is sending INITBIDIR.
 
 HARDWARE
-The demo runs on the OSP32 board. Add a pull-ups on SION and SIOP of OUT, 
-and connect a logic analyzer them.
+The demo runs on the OSP32 board. Add pull-ups on both SION and SIOP 
+of OUT, and connect a logic analyzer to them.
 In Arduino select board "ESP32S3 Dev Module".
 
 BEHAVIOR

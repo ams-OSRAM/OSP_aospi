@@ -1,6 +1,6 @@
 # Telegram
 
-A python script to dissecting and pretty print telegrams with CRC check.
+A python script to dissect and pretty print telegrams, with CRC check.
 
 ## Introduction
 
@@ -19,8 +19,9 @@ This application uses the following support files
 - `setup.bat` first file to run, sets up a virtual Python environment.
   You might need to tweak the line that sets the `LOCATION` of the python executable.
 - `requirements.txt` is used by `setup.bat` to install packages.
-  In this case, the file contains the a CRC library.
+  In this case, the file contains a reference to a CRC library.
 - `run.bat` actually runs `telegram.py`.
+  It checks if `setup` has been run.
 - `telegram.py` the script started by `run.bat`.
 - `clean.bat` deletes the virtual environment.
 - `readme.md` this file.
@@ -30,10 +31,10 @@ This application uses the following support files
 
 Once the project is setup (`setup.bat`), run the python app via `run.bat`. 
 We must pass it the bytes that make up the telegram.
-They must be passed in hex, space separated.
+The bytes must be passed in hex, space separated.
 
-This example shows the result of pretty printing the reply 
-for an initbidir of a chain of length 5.
+This example shows the result of pretty printing the response 
+for an initbidir telegram of a chain of length 5.
 
 ```
 (env) OSP_aospi\python\telegram>run A0 15 02 6F 50 30
@@ -68,6 +69,7 @@ meaning   |   -   |         5         |  2  |  initbidir  |      111      :     
 ```
 
 Run `OSP_aoapi\python\cleanall.bat` to remove the virtual environment.
+It can always be regenerated with `setup.bat`.
 
 (end)
 

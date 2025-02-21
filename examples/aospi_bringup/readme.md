@@ -24,15 +24,17 @@ INITBIDIR telegram.
 ## Hardware
 
 The demo runs on the OSP32 board. We cut a MiniBridge cable in two, plug it
-in OUT, add a pull-up on SION and SIOP, and connect a logic analyzer.
+in OUT, add a pull-up on both SION and SIOP, and connect a logic analyzer.
 An alternative is to use the OUT pin header to solder a header or even
 directly pull-ups. Recommended pull-up value is 10kΩ.
 
-![hardware setup](extras/hardware.jpg)
+![schematics](extras/schematics.drawio.png)
 
 The two pull-ups configure the port for USE mode (aka CAN mode).
-Unlike the standard LVDS mode, this uses voltage levels to communicate,
-so easier to capture using a logic analyzer.
+Unlike the standard LVDS mode which drives a _current_, USE mode uses 
+_voltage_ levels to communicate, so easier to capture using a logic analyzer.
+
+![hardware setup](extras/hardware.jpg)
 
 
 ## Logic analyzer
@@ -80,7 +82,7 @@ This proves that the node is operational: it receives a telegram from the MCU
 and processes it (forwards it).
 
 
-## INITBIDE trace
+## INITBIDIR trace
 
 Even more convincing is the trace of the INITBIDIR.
 The MCU sends `A0 04 02 A9` to SIO1, this means INITBIDIR(001),
@@ -129,9 +131,15 @@ and recomputed the checksum.
 This means we have successful MCU-SAID communication.
 
 
-## Afterthought
+## Afterthoughts
 
-There are many things that can go wrong. See this libraries readme for a list
+It is also possible to measure (voltage levels) mid chain. Again, attach 
+a pull-up on both the P and N lines to select the USE mode. Remember that 
+the USE mode separates TX and RX, so connect with a cross configuration.
+
+![schematics](extras/schematics2.drawio.png)
+
+There are many things that can go wrong. See this library's readme for a list
 of [issues](https://github.com/ams-OSRAM/OSP_aospi?tab=readme-ov-file#issues).
 
 (end)
