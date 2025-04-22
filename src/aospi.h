@@ -1,6 +1,6 @@
 // aospi.h - 2wire-SPI towards and from OSP nodes
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024,2025 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -27,7 +27,7 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "0.5.8"
+#define AOSPI_VERSION "0.5.9"
 
 
 // OSP uses telegrams of max 12 bytes
