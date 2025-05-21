@@ -1,6 +1,6 @@
 // aospi_tx.ino - transmit only demo, switching on some LEDs
 /*****************************************************************************
- * Copyright 2024 by ams OSRAM AG                                            *
+ * Copyright 2024,2025 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -37,7 +37,7 @@ does not receive responses, so no demo board needs to be attached.
 In Arduino select board "ESP32S3 Dev Module".
 
 BEHAVIOR
-The first RGB (L1.0) of SAID OUT blinks magenta and green.
+The first RGB (L1.0 aka OUT0) of SAID OUT blinks magenta and green.
 
 OUTPUT
 Welcome to aospi_tx.ino

@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <driver/spi_slave.h>
+#include <soc/soc_caps.h>
 #include <vector>
 #include <string>
 
@@ -65,7 +66,7 @@ struct spi_slave_context_t
         .data6_io_num = -1,
         .data7_io_num = -1,
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
-        .data_io_default_level = false, // Patched by ams-OSRAM
+        .data_io_default_level = false,
 #endif
         .max_transfer_sz = SOC_SPI_MAXIMUM_BUFFER_SIZE,
         .flags = SPICOMMON_BUSFLAG_SLAVE,
@@ -559,6 +560,15 @@ public:
 
     // ===== Optional Configurations =====
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+    /// @brief set default data io level
+    /// @param level default data io level
+    void setDataIODefaultLevel(bool level)
+    {
+        this->ctx.bus_cfg.data_io_default_level = level;
+    }
+#endif
+
     /// @brief Bitwise OR of SPI_SLAVE_* flags.
     /// @param flags
     void setSlaveFlags(uint32_t flags) { this->ctx.if_cfg.flags = flags; }
@@ -634,7 +644,11 @@ private:
 
         // create spi slave task
         std::string task_name = std::string("spi_slave_task_") + std::to_string(this->ctx.if_cfg.spics_io_num);
+#if SOC_CPU_CORES_NUM == 1
+        int ret = xTaskCreatePinnedToCore(spi_slave_task, task_name.c_str(), SPI_SLAVE_TASK_STASCK_SIZE, static_cast<void*>(&this->ctx), SPI_SLAVE_TASK_PRIORITY, &this->spi_task_handle, 0);
+#else
         int ret = xTaskCreatePinnedToCore(spi_slave_task, task_name.c_str(), SPI_SLAVE_TASK_STASCK_SIZE, static_cast<void*>(&this->ctx), SPI_SLAVE_TASK_PRIORITY, &this->spi_task_handle, 1);
+#endif
         if (ret != pdPASS) {
             ESP_LOGE(TAG, "failed to create spi_slave_task: %d", ret);
             return false;

@@ -100,9 +100,17 @@ File > Examples > OSP 2wireSPI aospi > ...
   This sketch just sends a RESET telegram to a node. We check whether that 
   node forwards the telegram. The checking is done using a logic analyzer. 
   A next step is sending INITBIDIR. It is an example of how to bring-up
-  new hardware/software. There is a more detailed [readme.md](readme.md) to
-  explain the process.
+  new hardware/software. There is a more detailed 
+  [readme.md](examples/aospi_bringup/readme.md) to explain the process.
 
+- **aospi_mcua** ([source](examples/aospi_mcua))
+  This is an advanced demo: we reconfigure the OSP32 board (V11 or higher is 
+  needed) to bypass the SAID OUT which uses MCU mode type B. Instead we attach 
+  the SAIDbasic board directly to the level shifter. This allows us to test the 
+  MCU mode type A. MCU mode type A is used in RGBI and in SAID with a default 
+  OTP image. The [readme.md](examples/aospi_mcua/readme.md) explains how to
+  reconfigure OSP32.
+ 
 
 ## API
 
@@ -141,8 +149,11 @@ Here is a quick overview:
   operation.
 
 - `aospi_init()` must be called before using any of the above functions.
-  This configures all pins, interrupt routine, SPI master and SPI slave drivers
-  and puts the mux to BiDir.
+  This configures all pins, interrupt routine, SPI master and SPI slave 
+  drivers and puts the mux to BiDir. This function has a parameter `phy` 
+  (of type `aospi_phy_t`) that defaults to `aospi_phy_mcub`, initializing the 
+  driver for the physical layer implemented on the OSP32 board: MCU mode 
+  type B; see [Physical layer](#physicallayer) for details.
 
 - The macro `AOSPI_TELE_MAXSIZE` defines the maximum size of an OSP telegram.
 
@@ -421,7 +432,7 @@ This chapter explains the execution architecture in more detail.
   (pull-up on SIO.P and pull-down on SIO.N).
 
 - The communication between MCU and first node is either 
-  _1-wire SPI_ or _2-wire SPI_.
+  _1-wire SPI_ (aka type A) or _2-wire SPI_ (aka type B).
 
   - 1-wire SPI only uses the P wire. The signal contains clock and data by 
     using so-called _Manchester_ encoding. This means that the MCU firmware 
@@ -438,8 +449,6 @@ This chapter explains the execution architecture in more detail.
   - The SAID AS1163 has this OTP bit, the OSIRE RGBi E3731i only supports 
     1-wire SPI.
   
-  - **The _aospi_ library only supports 2-wire SPI**.
-
 
 ### Receiving response telegrams
 
@@ -477,6 +486,34 @@ This chapter explains the execution architecture in more detail.
   connection.
   
   ![BiDir](extras/dirosp32.drawio.png)
+
+- In either case, and independent of the send mode, reception uses two wires:
+  P for data and N for clock.
+
+
+### Physical layer
+
+The OSP32 board and this _aospi_ library are developed for the following 
+scenario: MCU using 2-wire SPI towards the first SAID. This physical layer 
+is also known as MCU mode type B. However, the difference with the physical 
+layer 1-wire Manchester (also known as MCU mode type A) is small. 
+For software the differences are:
+
+- Every 1 bit must be encoded as a low-high transition and every 
+  0 bit as a high-low transition.
+- The clock frequency must be doubled to keep the same bit rate.
+
+By calling `aospi_init()`, the argument `phy` which has a default value 
+`aospi_phy_mcub`, ensures that the lib is configured for MCU mode type B. 
+However by passing explicitly `aospi_phy_mcua`, the lib is configured for 
+MCU mode type A. This basically takes care of the bit doubling and 
+frequency doubling.
+
+However, the N and P lines of the MCU, by default run to the SAID OUT, 
+whose OTP is burned for type B. So SAID OUT can not be used with 
+`aospi_init(aospi_phy_mcua)`. The OSP32 board needs to bypass SAID OUT.
+See the documentation coming with example [aospi_mcua](examples/aospi_mcua/readme.md)
+for how to achieve that.
 
 
 ### Telegram timing
@@ -695,6 +732,12 @@ The figure below shows details of the INITLOOP command and response.
 
 ## Version history _aospi_
 
+- **2025 May 21, 1.0.0**
+  - `aospi_init()` can now be configured for physical layer type A (was only type B).
+  - Example `aospi_mcua.ino` added to show how to use physical layer type A (with reconfigure documentation).
+  - Added OSP32 v12 names for LEDs (e.g. L1.0 aka OUT0).
+  - The SPI _slave_ driver upgraded to v0.6.8 to make it compile with esp32 board lib 3.2.0.
+  
 - **2025 April 22, 0.5.9**
   - The SPI _slave_ driver is patched to make it compile with esp32 board lib 3.2.0.
 

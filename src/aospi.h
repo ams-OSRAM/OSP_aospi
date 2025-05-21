@@ -1,4 +1,4 @@
-// aospi.h - 2wire-SPI towards and from OSP nodes
+// aospi.h - 2-wire SPI (and 1-wire Manchester) towards and from OSP nodes
 /*****************************************************************************
  * Copyright 2024,2025 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
@@ -27,21 +27,35 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "0.5.9"
+#define AOSPI_VERSION "1.0.0"
 
 
 // OSP uses telegrams of max 12 bytes
 #define AOSPI_TELE_MAXSIZE 12
 
 
-// Initializes the SPI OUT and IN controllers and their support pins.
-void aospi_init();                             
+// This library supports multiple physical layers
+typedef enum aospi_phy_e {
+  aospi_phy_undef, // None selected yet
+  aospi_phy_mcua,  // MCU mode Type A
+  aospi_phy_mcub,  // MCU mode Type B (for unmodified OSP32 board)
+//aospi_phy_use,   // USE mode
+//aospi_phy_ext,   // External (ie by application)
+} aospi_phy_t;
+
+
+// Converts a `phy` tag to a human readable string
+const char * aospi_phy_str( aospi_phy_t phy );
+
+
+// Initializes the SPI OUT and IN controllers and their support pins for the selected phy.
+void aospi_init( aospi_phy_t phy = aospi_phy_mcub ); // OSP32 board wired for mcub
 
 
 // Sends the `txsize` bytes in buffer `tx` to the first OSP node.
-aoresult_t aospi_tx(const uint8_t * tx, int txsize); 
+aoresult_t aospi_tx(const uint8_t * tx, int txsize);
 // Sends the `txsize` bytes in buffer `tx` to the first OSP node. Waits for a response telegram and stores those bytes in buffer `rx` with size `rxsize`.
-aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize=0); 
+aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize=0);
 
 
 //Returns the round trip time for the last `aospi_txrx()` call.

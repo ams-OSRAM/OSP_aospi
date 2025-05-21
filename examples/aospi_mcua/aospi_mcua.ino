@@ -1,6 +1,6 @@
-// aospi_txrx.ino - demo that switches on some LEDs but also queries nodes for some info
+// aospi_mcua.ino - demo that controls LEDs and gets info using MCU mode type A
 /*****************************************************************************
- * Copyright 2024,2025 by ams OSRAM AG                                       *
+ * Copyright 2025 by ams OSRAM AG                                            *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -23,52 +23,65 @@
 
 /*
 DESCRIPTION
-In this demo, a small set of telegrams has been hand-constructed
-(including for example CRC), and responses are hand destructed.
-Normally one would use the aoosp lib for that. The telegrams are
-passed directly to/from the SPI layer (aospi lib).
-
-The amount of telegrams being send is minimal, just enough to
-switch on the LEDs in channel 0 of the first SAID.
-
-There is not much error handling, other then printing result codes.
+This is an advanced demo: we reconfigure the OSP32 board (V11 or higher is 
+needed) to bypass the SAID OUT which uses MCU mode type B. Instead we attach 
+the SAIDbasic board directly to the level shifter. This allows us to test the 
+MCU mode type A. MCU mode type A is used in RGBI and in SAID with a default 
+OTP image.
+This demo is a near copy of aospi_txrx.ino, the only difference is the 
+physical layer between the MCU and the first node: type A instead of type B. 
+Recall that physical layer type A (1-wire Manchester encoded) only differs 
+from type B (2-wire SPI with clock and data) in the transmit, in reception 
+both use 2-wire SPI. 
+Software wise, the main worry is selecting the correct physical layer, that 
+happens in the call aospi_init(aospi_phy_mcua).
 
 HARDWARE
-The demo runs on the OSP32 board. It only uses the first SAID.
-But it receives responses so a 'closed' OSP chain is needed. 
-There are two options for that (1) "loop": connect OUT to IN with a
-wire (or connect OUT to IN of a demo board and connect the OUT of 
-that demo board to the IN of OSP32). (2) "bidir": plug in terminator
-in OUT (or connect OUT to IN of a demo board and plug a terminator 
-in OUT of that demo board).
-
-Set the #if in setup() to match the loop/bidir choice made for the hardware.
+The demo runs on the OSP32 board with a reconfiguration: a new OUT port is 
+created bypassing SAID OUT; see the readme.md for how to do that. The new
+OUT port is typically connected to the SAIDBbasic board, which is looped back.
 In Arduino select board "ESP32S3 Dev Module".
 
+WARNING
+The RGBIs and the SAID v1.0 generate one extra clock transition before 
+sending a response telegram in BiDir mode. The aospi driver does not (yet)
+support that. These are the supported setups.
+               Loop BiDir
+  RGBI          yes  no
+  SAID v1.0     yes  no
+  SAID v1.1     yes  yes
+Older EVKs have still SAID v1.0. See 
+https://github.com/ams-OSRAM/OSP_aotop/tree/main/extras/manuals/saidversions
+for instructions how to find out the SAIDbasic has v1.0 or v1.1 SAID in head
+position.
+
 BEHAVIOR
-The first RGB (L1.0 aka OUT0) of SAID OUT blinks magenta and green.
+The first RGB triplet in the chain blinks magenta and green.
+The Serial output shows status and twice the identify of that node.
 
 OUTPUT
-Welcome to aospi_txrx.ino
-version: result 0.4.1 spi 0.5.1
-spi: init
+Welcome to aospi_mcua.ino
+version: result 0.4.6 spi 0.5.9
+spi: init(MCU-A)
 
-reset(0x000) ok
-initloop(0x001) ok -> 9 nodes
+reset(0x000)    ok
+initloop(0x001) ok -> 8 nodes
 clrerror(0x000) ok
 goactive(0x000) ok
-setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
-telegram count: tx 5 rx 1
-
-mode loop
+readstat(0x001) ok -> stat 0x80
 identify(0x001) ok -> id 40
 identify(0x001) ok -> 00 00 00 40
-setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
-setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
 
-mode loop
-identify(0x001) ok -> id 40
-...
+setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
+setpwm(0x001,0x0888,0x0011,0x0888) ok
+setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
+setpwm(0x001,0x0011,0x0888,0x0011) ok
+setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
+setpwm(0x001,0x0888,0x0011,0x0888) ok
+setpwmchn(0x001,0,0x0011,0x0888,0x0011) ok
+setpwm(0x001,0x0011,0x0888,0x0011) ok
+setpwmchn(0x001,0,0x0888,0x0011,0x0888) ok
+setpwm(0x001,0x0888,0x0011,0x0888) ok
 */
 
 
@@ -79,7 +92,7 @@ identify(0x001) ok -> id 40
 void tele_reset() {
   const uint8_t reset[] = {0xA0, 0x00, 0x00, 0x22};
   aoresult_t result = aospi_tx( reset, sizeof reset );
-  Serial.printf("reset(0x000) %s\n", aoresult_to_str(result) );
+  Serial.printf("reset(0x000)    %s\n", aoresult_to_str(result) );
 }
 
 
@@ -89,6 +102,7 @@ void tele_initbidir() {
   aoresult_t result = aospi_txrx( initbidir, sizeof initbidir, resp, sizeof resp);
   int last = BITS_SLICE(resp[0],0,4)<<6 | BITS_SLICE(resp[1],2,8);
   Serial.printf("initbidir(0x001) %s -> %d nodes\n", aoresult_to_str(result), last );
+  // Serial.print("  resp="); for(int i=0; i<sizeof resp; i++) Serial.printf(" %02X",resp[i]); Serial.print(".\n");
 }
 
 
@@ -115,17 +129,31 @@ void tele_goactive() {
 }
 
 
-void tele_setpwmchn_hi() {
+void tele_setpwmchn_hi() { // magenta (for SAID)
   const uint8_t setpwmchn[] = {0xA0, 0x07, 0xCF, 0x00, 0xFF, 0x08, 0x88, 0x00, 0x11, 0x08, 0x88, 0x94};
   aoresult_t result = aospi_tx( setpwmchn, sizeof setpwmchn);
   Serial.printf("setpwmchn(0x001,0,0x0888,0x0011,0x0888) %s\n", aoresult_to_str(result) );
 }
 
 
-void tele_setpwmchn_lo() {
+void tele_setpwmchn_lo() {  // green (for SAID)
   const uint8_t setpwmchn[] = {0xA0, 0x07, 0xCF, 0x00, 0xFF, 0x00, 0x11, 0x08, 0x88, 0x00, 0x11, 0x17};
   aoresult_t result = aospi_tx( setpwmchn, sizeof setpwmchn);
   Serial.printf("setpwmchn(0x001,0,0x0011,0x0888,0x0011) %s\n", aoresult_to_str(result) );
+}
+
+
+void tele_setpwm_hi() { // magenta (for RGBI)
+  const uint8_t setpwm[] = {0xA0, 0x07, 0x4F, 0x08, 0x88, 0x00, 0x11, 0x08, 0x88, 0x24 };
+  aoresult_t result = aospi_tx( setpwm, sizeof setpwm);
+  Serial.printf("setpwm(0x001,0x0888,0x0011,0x0888) %s\n", aoresult_to_str(result) );
+}
+
+
+void tele_setpwm_lo() {  // green (for RGBI)
+  const uint8_t setpwm[] = {0xA0, 0x07, 0x4F, 0x00, 0x11, 0x08, 0x88, 0x00, 0x11, 0xA7}; 
+  aoresult_t result = aospi_tx( setpwm, sizeof setpwm);
+  Serial.printf("setpwm(0x001,0x0011,0x0888,0x0011) %s\n", aoresult_to_str(result) );
 }
 
 
@@ -135,6 +163,7 @@ void tele_readstat() {
   aoresult_t result= aospi_txrx( identify, sizeof identify, resp, sizeof resp);
   uint8_t stat = resp[3];
   Serial.printf("readstat(0x001) %s -> stat 0x%02X\n", aoresult_to_str(result), stat );
+  // Serial.print("  resp="); for(int i=0; i<sizeof resp; i++) Serial.printf(" %02X",resp[i]); Serial.print(".\n");
 }
 
 
@@ -144,6 +173,7 @@ void tele_identify() {
   aoresult_t result= aospi_txrx( identify, sizeof identify, resp, sizeof resp);
   uint32_t id = (uint32_t)(resp[3])<<24 | (uint32_t)(resp[4])<<16 | (uint32_t)(resp[5])<<8 | (uint32_t)(resp[6]);
   Serial.printf("identify(0x001) %s -> id %lX\n", aoresult_to_str(result), id );
+  // Serial.print("  resp="); for(int i=0; i<sizeof resp; i++) Serial.printf(" %02X",resp[i]); Serial.print(".\n");
 }
 
 
@@ -157,41 +187,49 @@ void tele_identify_alt() {
   Serial.printf("identify(0x001) %s ->", aoresult_to_str(result) );
   for( int i=3; i<actsize-1; i++) Serial.printf(" %02X", resp[i] );
   Serial.printf("\n");
+  // Serial.print("  resp="); for(int i=0; i<sizeof resp; i++) Serial.printf(" %02X",resp[i]); Serial.print(".\n");
 }
 
 
 void setup() {
   Serial.begin(115200);
-  Serial.printf("\n\nWelcome to aospi_txrx.ino\n");
+  Serial.printf("\n\nWelcome to aospi_mcua.ino\n");
   Serial.printf("version: result %s spi %s\n", AORESULT_VERSION, AOSPI_VERSION );
 
-  aospi_init();
+  // The key difference with aospi_txrx.ino is the next line: initialization of 
+  // the aospi library selecting a different physical layer (MCU mode Type A).
+  aospi_init(aospi_phy_mcua);
   Serial.printf("\n");
 
   // Minimal sequence to illuminate a SAID
   tele_reset(); delayMicroseconds(150); // RESET time one node
-  #if 1
-    aospi_dirmux_set_bidir(); // On OSP32 board dir led is now green
+  // Init with matching dirmux
+  #if 0
+    aospi_dirmux_set_bidir(); // On OSP32 board dirmux LED is now green
     tele_initbidir();
   #else
-    aospi_dirmux_set_loop(); // On OSP32 board dir led is now yellow
+    aospi_dirmux_set_loop();  // On OSP32 board dirmux LED is now yellow
     tele_initloop();
   #endif
+  // Switch to active (need to clear error flags first)
   tele_clrerror();
   tele_goactive();
-  tele_setpwmchn_hi();
+  // Some reads to check that works too
+  tele_readstat();
+  tele_identify();
+  tele_identify_alt();
 
-  Serial.printf("telegram count: tx %d rx %d\n", aospi_txcount_get(), aospi_rxcount_get() );
+  // Now start the blinking
+  Serial.printf("\n");
+  tele_setpwmchn_hi(); tele_setpwm_hi(); // SAID or RGBI; either will be happy
+  delay(5000);
 }
 
 
 void loop() {
-  Serial.printf( "\nmode %s\n", aospi_dirmux_is_loop() ? "loop" : "bidir" );
-  tele_identify();
-  tele_identify_alt();
-  delay(1000);
-  tele_setpwmchn_lo();
-  delay(1000);
-  tele_setpwmchn_hi();
+  tele_setpwmchn_lo(); tele_setpwm_lo(); // SAID or RGBI; either will be happy
+  delay(2000);
+  tele_setpwmchn_hi(); tele_setpwm_hi(); // SAID or RGBI; either will be happy
+  delay(2000);
 }
 
