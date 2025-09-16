@@ -22,9 +22,10 @@
 
 /*
 DESCRIPTION
-In this demo, a small set of telegrams has been hand-constructed 
-(including for example CRC), Normally one would use the aoosp lib for 
-that. The telegrams are passed directly to the SPI layer (aospi lib).
+This demo is sometimes referred to as "blinky".It consist of a small set of 
+telegrams to blink an LED. Normally one would use the aoosp lib to construct
+telegrams instead of doing that by hand. The telegrams are passed directly 
+to the SPI layer (aospi lib).
 
 The amount of telegrams being send is minimal, just enough to
 switch on the LEDs in channel 0 of the first SAID.

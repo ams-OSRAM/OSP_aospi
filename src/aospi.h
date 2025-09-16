@@ -27,7 +27,7 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "1.0.0"
+#define AOSPI_VERSION "1.0.1"
 
 
 // OSP uses telegrams of max 12 bytes

@@ -70,10 +70,10 @@ telegrams.
 
 This library comes with the following examples.
 You can find them in the Arduino IDE via 
-File > Examples > OSP 2wireSPI aospi > ...
+[File > Examples > OSP 2wireSPI aospi > ...](examples):
 
 - **aospi_tx** ([source](examples/aospi_tx))  
-  In this demo, a small set of telegrams has been hand-constructed.
+  In this demo blinks an LED. A small set of telegrams has been hand-constructed.
   Those telegrams are passed directly to the SPI layer (_aospi_ lib).
   The demo uses a minimal amount of telegrams to switch on the LEDs 
   of the first SAID of the OSP32 board.
@@ -731,6 +731,11 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2025 September 16, 1.0.1**
+  - Textual corrections in multiple examples.
+  - Added link to examples.
+  - Debug feature: zap unreliable bytes in reception buffer to 00.
 
 - **2025 May 21, 1.0.0**
   - `aospi_init()` can now be configured for physical layer type A (was only type B).

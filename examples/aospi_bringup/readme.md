@@ -13,12 +13,13 @@ However, this requires not only successful communication, but also a correct
 sequence of telegrams (assign address, clear errors, switch to active state,
 set drive current, set PWM value).
 
-In this sketch we just send a RESET telegram to one node, and check whether
-that node forwards it. 
+In this sketch we just send a RESET telegram to a node connected to the MCU, 
+and check whether that node forwards it. 
 
-An optional next step is sending INITBIDIR. Remember that a node needs 
-150 μs for executing a RESET; a delay for that needs to precede the 
-INITBIDIR telegram.
+An optional next step is sending INITBIDIR. A node forwards a RESET, but 
+needs to update the address of an INITBIDIR telegram before forwarding it.
+Note: a node needs 150 μs for executing a RESET; a delay for that 
+needs to precede the INITBIDIR telegram.
 
 
 ## Hardware
@@ -30,9 +31,14 @@ directly pull-ups. Recommended pull-up value is 10kΩ.
 
 ![schematics](extras/schematics.drawio.png)
 
-The two pull-ups configure the port for USE mode (aka CAN mode).
+The two pull-ups configure the outgoing SIO port for USE mode (aka CAN mode).
 Unlike the standard LVDS mode which drives a _current_, USE mode uses 
 _voltage_ levels to communicate, so easier to capture using a logic analyzer.
+
+
+The photo below shows the cut cable connected to a breadboard, with the 
+two pull-up resistors and the probes for the logic analyzer (black for
+ground,  yellow and blue for SIO2.P and SIO2.N).
 
 ![hardware setup](extras/hardware.jpg)
 
@@ -40,7 +46,8 @@ _voltage_ levels to communicate, so easier to capture using a logic analyzer.
 ## Logic analyzer
 
 We used a [Saleae](https://www.saleae.com/) logic analyzer.
-It even has a slicer for Manchester. These are the settings for the slicer.
+It even has a slicer for Manchester. These are the suggested settings 
+for the slicer.
 
 ![Slicer settings](extras/slicer.png)
 
@@ -79,14 +86,14 @@ meaning   |   -   |     broadcast     |  0  |    reset    |    34 (ok)    |
 ```
 
 This proves that the node is operational: it receives a telegram from the MCU
-and processes it (forwards it).
+and processes it (including forwarding it).
 
 
 ## INITBIDIR trace
 
 Even more convincing is the trace of the INITBIDIR.
 The MCU sends `A0 04 02 A9` to SIO1, this means INITBIDIR(001),
-i.e. init and assign yourself address 001
+i.e. init and assign address 001
 
 ```
 (env) OSP_aospi\python\telegram>run A0 04 02 A9

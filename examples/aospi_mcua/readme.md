@@ -19,7 +19,7 @@ uses the reconfiguration described in this documentation.
 
 ## Schematics
 
-On the OSP32 board, the MCU (and ESP32) has its internal SPI block 
+On the OSP32 board, the MCU (an ESP32) has its internal SPI block 
 wired, via a level shifter, to (SIO1 of) SAID OUT. SIO2 of SAID OUT
 is exposed on the ERNI connector labeled OUT. This is the start of the 
 OSP chain. 
@@ -41,10 +41,10 @@ To make this easier, the jumpers have a 5V and a GND next to it.
 
 ## Reconfigure
 
-Physically, the jumpers is on the backside of the OSP32 board, below 
+Physically, the jumpers are on the backside of the OSP32 board, below 
 SAID OUT. The photo on the right shows the N and P jumper present, the 
 default configuration. The middle photo shows the two jumpers removed.
-We have now for pins exposed: 5, N, P, G; this is precisely what an 
+We have now four pins exposed: 5, N, P, G; this is precisely what an 
 ERNI cable carries. The photo on the right shows a patched ERNI cable 
 being plugged into those four pins.
 
@@ -60,8 +60,8 @@ or the SAIDlooker board.
 
 ![Cable](cable.jpg)
 
-As an alternative we made an ERNI breakout board: a smal PCB converting 
-from 4 pin female header to ERNI
+As an alternative we made an ERNI breakout board: a small PCB converting 
+from 4 pin female header to an ERNI connector.
 
 ![New connector](bypass-SAID-OUT-connector.jpg)
 

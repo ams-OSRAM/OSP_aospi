@@ -460,7 +460,9 @@ static aoresult_t aospi_txrx_internal(int freq, const uint8_t * tx, int txsize, 
   if( aospi_in.numTransactionsInFlight()!=0 && aospi_in.numTransactionsCompleted()!=1 ) return aoresult_assert; // should not happen (buffers pending in flight)
   int rxact= aospi_in.numBytesReceived();
   memcpy(rx,aospi_in_buf,min(rxact,rxsize));
-
+  // Debug feature: zap unreliable bytes in reception buffer to 00 
+  if( actsize==0 && rxact!=rxsize ) { memset(rx+min(rxact,rxsize),0x00,rxsize-min(rxact,rxsize)); } 
+    
   // Update stats counters
   aospi_txcount++;
   aospi_rxcount++;
