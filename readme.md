@@ -131,6 +131,18 @@ Here is a quick overview:
   There are also observers of the current direction mux setting 
   (`aospi_dirmux_is_loop()` and `aospi_dirmux_is_bidir()`).
 
+- The library has the option to print warnings. At the moment, there is one 
+  check that may lead to a warning: when telegram has a payload size of 5; 
+  older OSP nodes do not support that size, they don't forward those telegrams.
+  Warnings are managed with `aospi_warnings_set(ena)` and `aospi_warnings_get()`.
+
+- The last sent and receive telegrams are available through `aospi_tx_last()` 
+  and `aospi_rx_last()`. This enables commands like `osp fields tx`.
+
+- The library allows to set the idle time between telegrams; the `aospi_tx(...)`
+  inserts this after sending a telegram. Use `aospi_idletime_us_set()` and
+  `aospi_idletime_us_get()`. Default is 8 us, as specified by OSP.
+  
 - For statistics, the library keeps track of the number of telegrams sent 
   (with `aospi_tx()` and `aospi_txrx()`) or received (with `aospi_txrx()`).
   These counters can be retrieved with `aospi_txcount_get()` respectively `aospi_rxcount_get()`.
@@ -154,6 +166,9 @@ Here is a quick overview:
   (of type `aospi_phy_t`) that defaults to `aospi_phy_mcub`, initializing the 
   driver for the physical layer implemented on the OSP32 board: MCU mode 
   type B; see [Physical layer](#physicallayer) for details.
+  
+  Function `aospi_phy_t aospi_phy_get()` returns the physical layer selected 
+  with init.
 
 - The macro `AOSPI_TELE_MAXSIZE` defines the maximum size of an OSP telegram.
 
@@ -542,6 +557,10 @@ for how to achieve that.
 
 ## Implementation notes
 
+Here is an overview of the time scales
+
+![Time scale](extras/timescale.drawio.png)
+
 - The _aospi_ library is hardwired to use specific pins of the ESP32S3.
   The library could be used with other pins of the ESP32S3, and maybe even 
   with other ESP32xx MCUs. In this case the macros that identify pins 
@@ -731,6 +750,16 @@ The figure below shows details of the INITLOOP command and response.
 
 
 ## Version history _aospi_
+
+- **2026 April 21, 2.0.0**
+  - Added `aospi_phy_t aospi_phy_get()` used in `aocmd_version_main()`.
+  - Added `aospi_tx_last()` and `aospi_rx_last()` for the `osp fields` command.
+  - Added timescale [overview](extras/timescale.drawio.png).
+  - Improved `aospi_txrx_us()` and `aospi_txrx_hops()` documentation.
+  - Added 8µs idle time between telegrams; default can be changed with `aospi_idletime_us_set()`.
+  - Improved report of `aospi_time.ino`.
+  - Added printing warnings for telegrams with PSI of 5 (since not supported by RGBI); use `aospi_warnings_set()` and `aospi_warnings_get()`.
+  - Fixed bug in Telegram dissector (`python\telegram`): removed duplicate `setpwm`/`setpwmchn`.
 
 - **2025 September 16, 1.0.1**
   - Textual corrections in multiple examples.

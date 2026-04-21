@@ -24,6 +24,9 @@
 #include <aospi.h>           // own
 
 
+// === physical layer =======================================================
+
+
 // Phy selected in init()
 static aospi_phy_t aospi_phy= aospi_phy_undef;
 
@@ -33,7 +36,7 @@ static aospi_phy_t aospi_phy= aospi_phy_undef;
     @param  phy
             A physical layer (tag).
     @return A constant string.
-    @note   If the the tag is not part of aospi_phy_t, the function
+    @note   If the tag is not part of aospi_phy_t, the function
             returns "<unknown>".
 */
 const char * aospi_phy_str( aospi_phy_t phy ) {
@@ -46,6 +49,16 @@ const char * aospi_phy_str( aospi_phy_t phy ) {
   }
   // By not having a default in the switch, a good compiler gives a warning when a case/tag is forgotten.
   return "<unknown>" ;
+}
+
+
+/*!
+    @brief  Returns the physical layer selected with `aospi_init()`.
+    @return The physical layer (tag).
+    @note   Can be printed by using `aospi_phy_str()`.
+*/
+aospi_phy_t aospi_phy_get( ) {
+  return aospi_phy;
 }
 
 
@@ -98,6 +111,109 @@ int  aospi_txcount_get() {
 */
 int  aospi_rxcount_get() {
   return aospi_rxcount;
+}
+
+
+// === logging ==============================================================
+
+
+static bool aospi_warnings = true;
+
+
+/*!
+    @brief  En/disables warnings for sending telegram.
+    @param  warnings
+            true to enable, false to disable warnings.
+    @note   Currently one warning is given, when PSI equals 5.
+            Older OSP reserved PSI=5 for future use and as a result older 
+            OSP nodes do not forward those telegrams.
+    @note   Warning means "print to Serial".
+    @note   Default is true.
+*/
+void aospi_warnings_set(bool warnings) {
+  aospi_warnings = warnings;
+}
+
+
+/*!
+    @brief  Gets whether warnings are enabled on oaspi level.
+    @return Warning status
+    @note   See aospi_warnings_set() for details.
+*/
+bool aospi_warnings_get() {
+  return aospi_warnings;
+}
+
+
+// === idletime =============================================================
+
+
+static int aospi_idletime_us = 8; // OSP spec
+
+
+/*!
+    @brief  Set the (additional) idle time between telegrams (in us);
+            `aospi_tx` will insert that delay after sending a telegram.
+    @param  us
+            Delay in us.
+    @brief  OSP mandates an idle gap between telegrams of 8 us.
+            The ESP32 software (for `aospi_tx()`) already has around 15 us 
+            overhead, but this is of course implementation and MCU dependent.
+            This function allows the caller to set the idle time 
+            that `aospi_tx` will wait (in addition to the existing overhead).
+    @note   Default is 8 us.
+*/
+void aospi_idletime_us_set(int us) {
+  aospi_idletime_us = us;
+}
+
+
+/*!
+    @brief  Gets the idle time between telegrams (in us).
+    @return Warning status
+    @note   See aospi_warnings_set() for details.
+*/
+bool aospi_idletime_us_get() {
+  return aospi_idletime_us;
+}
+
+
+// === last telegrams ==========================================================
+
+
+static uint8_t aospi_lasttxbuf_data[AOSPI_TELE_MAXSIZE];
+static int     aospi_lasttxbuf_size= 4;
+/*!
+    @brief  Returns the last sent telegram.
+    @param  size
+            Out parameter denoting the size of the returned buffer
+    @return Pointer to buffer containing last sent data.
+    @note   If no aospi_tx[rx]() call was made yet, or when there was an
+            error, the return (and output) is undefined.
+    @note   The call is non destructive; it keeps its value until it is
+            overwritten by a next call to `aospi_tx[rx]()`.  
+*/
+const uint8_t * aospi_tx_last(int *size ) {
+  *size= aospi_lasttxbuf_size;
+  return aospi_lasttxbuf_data;
+}
+
+
+static uint8_t aospi_lastrxbuf_data[AOSPI_TELE_MAXSIZE];
+static int     aospi_lastrxbuf_size= 4;
+/*!
+    @brief  Returns the last received telegram.
+    @param  size
+            Out parameter denoting the size of the returned buffer
+    @return Pointer to buffer containing last received data.
+    @note   If no aospi_txrx() call was made yet, or when there was an
+            error, the return (and output) is undefined.
+    @note   The call is non destructive; it keeps its value until it is
+            overwritten by a next call to `aospi_txrx()`.  
+*/
+const uint8_t * aospi_rx_last(int *size ) {
+  *size= aospi_lastrxbuf_size;
+  return aospi_lastrxbuf_data;
 }
 
 
@@ -172,6 +288,7 @@ static void aospi_out_init() {
 */
 static aoresult_t aospi_tx_internal(int freq, const uint8_t * tx, int txsize) {
   AORESULT_ASSERT( aospi_phy!=aospi_phy_undef );
+  if( aospi_warnings ) if( txsize==3+5+1 ) Serial.printf("WARNING: telegram has PSI of 5; older OSP nodes do not support that\n");
   // Send (see https://docs.arduino.cc/learn/communication/spi)
   aospi_out.beginTransaction(SPISettings(freq, MSBFIRST, SPI_MODE0)); // TX uses SPI MODE 0
   AOSPI_OUT_OENA_SET(); // digitalWrite(AOSPI_OUT_OENA, HIGH); // enable level shifter output
@@ -181,6 +298,11 @@ static aoresult_t aospi_tx_internal(int freq, const uint8_t * tx, int txsize) {
   aospi_out.endTransaction();
   // Update counters
   aospi_txcount++;
+  // Update lasttxbuf
+  memcpy( aospi_lasttxbuf_data, tx, txsize);
+  aospi_lasttxbuf_size= txsize;
+  // Insert idle gap between telegrams
+  delayMicroseconds(aospi_idletime_us);
   // No checks possible on success
   return aoresult_ok;
 }
@@ -250,22 +372,25 @@ static uint32_t aospi_txrx_us_;
     @note   The trip time (t_trip) includes sending the telegram sized txsize 
             (t_cmd) and receiving the response sized rxsize (t_resp), but 
             also includes the execution time of the command (t_exec) and the 
-            forwarding time (t_fwd) of all intermediate nodes (k). 
+            forwarding time (t_fwd) of all (k) intermediate nodes. 
             In some cases the executing node introduces a delay (t_delay), 
             typically 5us for SAID in BiDir, 0 otherwise.
-    @note   For a BiDir trip the trip time is as follows:
+    @note   For a BiDir trip to node k+1 the trip time is as follows:
             t_trip = k×t_fwd + t_cmd + t_exec + t_delay + t_resp + k×t_fwd
     @note   For a Loop trip the trip time on a chain of n nodes is as follows:
             t_trip = (n-1)×t_fwd + t_cmd + t_exec + t_delay + t_resp
     @note   The call is non destructive; it keeps its value until it is
             overwritten by a next call to `aospi_txrx()`.  
+    @note   The printf implementation on Arduino sometimes causes a task switch
+            in the underlying FreeRTOS, inserting a 10ms delay in the printing
+            task. Advise is to keep printf outside timed code fragments.
 */
 uint32_t aospi_txrx_us() {
   return aospi_txrx_us_;
 }
 
 
-static int aospi_txrx_size_;
+static int aospi_txrx_size_; // number of bytes bytes in last command plus last response telegram
 /*!
     @brief  Returns an estimate of the number of hops a command telegram and
             its response telegram need in a bidirectional round trip.
@@ -279,7 +404,7 @@ static int aospi_txrx_size_;
             so that must precede the call to this function.
     @note   The number of hops is the number of OSP nodes the message needs
             to travel. In BiDir, the number of hops to travel to the n-th 
-            node and back is 2(n-1). In other words hops/2+1 estimates the 
+            node and back is 2(n-1). In other words (hops/2)+1 estimates the 
             address of the node.
     @note   The returned estimation of the number of hops is based on the 
             round trip time `aospi_txrx_us()` and the size of the command and 
@@ -296,10 +421,12 @@ static int aospi_txrx_size_;
             the distance to the MCU.
 */
 uint32_t aospi_txrx_hops(int t_extra) {
+  // Compute processing time
   // *8 for bits-to-bytes, *10 to get rid of dec point, +12 for rounding, bit rate 2.4Mhz;
-  // t_proc = t_cmd+(t_exec+t_delay)+t_resp = t_cmd+t_extra+t_resp
+  // t_proc = t_cmd+(t_exec+t_delay)+t_resp = t_cmd+t_extra+t_resp = (t_cmd+t_resp)+t_extra
   uint32_t t_proc = (aospi_txrx_size_*8*10+12)/24 + t_extra; 
-  if( t_proc>aospi_txrx_us_ ) return 0;
+  // If processing time was more than round trip time, estimate 0 hops.
+  if( t_proc > aospi_txrx_us_ ) return 0;
   // Time for all hops together
   uint32_t t_hop = aospi_txrx_us_ - t_proc;
   // t_fwd=7.5us; dividing t_hop by t_fwd gives number of hops (add 7.5/2 for rounding)
@@ -409,6 +536,7 @@ static __attribute__((aligned(4))) uint8_t aospi_in_buf[AOSPI_TELE_MAXSIZE];
 */
 static aoresult_t aospi_txrx_internal(int freq, const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize) {
   AORESULT_ASSERT( aospi_phy!=aospi_phy_undef );
+  if( aospi_warnings ) if( txsize==3+5+1 ) Serial.printf("WARNING: telegram has PSI of 5; older OSP nodes do not support that\n");
   // Parameter check (skipping tx, done by caller because of possible Manchester encoding
   if( rxsize<0 || rxsize>AOSPI_TELE_MAXSIZE ) return aoresult_spi_buf;
   if( rx==0 )  return aoresult_spi_buf;
@@ -467,6 +595,13 @@ static aoresult_t aospi_txrx_internal(int freq, const uint8_t * tx, int txsize, 
   aospi_txcount++;
   aospi_rxcount++;
   aospi_txrx_size_ = txsize + rxact;
+  
+  // Update lasttxbuf
+  memcpy( aospi_lasttxbuf_data, tx, txsize);
+  aospi_lasttxbuf_size= txsize;
+  // Update lastrxbuf
+  memcpy( aospi_lastrxbuf_data, rx, rxact);
+  aospi_lastrxbuf_size= rxact;
 
   // Return result
   if( clkflip==0 ) return aoresult_spi_noclock; // no clocks seen (the telegram might still have been received, but this still took too much time, so we flag that as an error)
@@ -474,7 +609,6 @@ static aoresult_t aospi_txrx_internal(int freq, const uint8_t * tx, int txsize, 
   if( actsize!=0 ) *actsize=rxact;
   return aoresult_ok; // rx successful
 }
-// todo: Multiple aospi_tx[rx]s in a row have a 10ms wait now and then. Is this caused by 'slave' lib using freeRTOS?
 
 
 // === Direction MUX ========================================================

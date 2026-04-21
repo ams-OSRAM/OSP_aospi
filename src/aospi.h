@@ -1,6 +1,6 @@
 // aospi.h - 2-wire SPI (and 1-wire Manchester) towards and from OSP nodes
 /*****************************************************************************
- * Copyright 2024,2025 by ams OSRAM AG                                       *
+ * Copyright 2024-2026 by ams OSRAM AG                                       *
  * All rights are reserved.                                                  *
  *                                                                           *
  * IMPORTANT - PLEASE READ CAREFULLY BEFORE COPYING, INSTALLING OR USING     *
@@ -27,7 +27,7 @@
 
 
 // Identifies lib version
-#define AOSPI_VERSION "1.0.1"
+#define AOSPI_VERSION "2.0.0"
 
 
 // OSP uses telegrams of max 12 bytes
@@ -48,20 +48,19 @@ typedef enum aospi_phy_e {
 const char * aospi_phy_str( aospi_phy_t phy );
 
 
+// === main functions ==========================================================
+
+
 // Initializes the SPI OUT and IN controllers and their support pins for the selected phy.
 void aospi_init( aospi_phy_t phy = aospi_phy_mcub ); // OSP32 board wired for mcub
+// Returns the physical layer selected with `aospi_init()`.
+aospi_phy_t aospi_phy_get();
 
 
 // Sends the `txsize` bytes in buffer `tx` to the first OSP node.
 aoresult_t aospi_tx(const uint8_t * tx, int txsize);
 // Sends the `txsize` bytes in buffer `tx` to the first OSP node. Waits for a response telegram and stores those bytes in buffer `rx` with size `rxsize`.
 aoresult_t aospi_txrx(const uint8_t * tx, int txsize, uint8_t * rx, int rxsize, int *actsize=0);
-
-
-//Returns the round trip time for the last `aospi_txrx()` call.
-uint32_t aospi_txrx_us();
-//Returns an estimate of the number of hops a command telegram and it response need in a bidirectional round trip.
-uint32_t aospi_txrx_hops(int t_extra=5);
 
 
 // Sets the direction mux so that the last OSP node is connected to the SPI slave (for an OSP chain using Loop).
@@ -72,6 +71,33 @@ void aospi_dirmux_set_bidir();
 int aospi_dirmux_is_loop();
 // Inspects the direction mux, returning iff the first node (BiDir) is connected to the SPI slave block.
 int aospi_dirmux_is_bidir();
+
+
+// === stats/test functions ====================================================
+
+
+// Set the idle time between telegrams (in us); `aospi_tx` will insert that delay after sending a telegram.
+void aospi_idletime_us_set(int us);
+// Gets the idle time between telegrams (in us).
+bool aospi_idletime_us_get();
+
+
+// En/disables (PSI=5) warnings for sending telegram.
+void aospi_warnings_set(bool warnings);
+// Gets whether warnings are enabled on aospi level.
+bool aospi_warnings_get();
+
+
+// Returns the last sent telegram.
+const uint8_t * aospi_tx_last(int *size );
+// Returns the last received telegram.
+const uint8_t * aospi_rx_last(int *size );
+
+
+// Returns the round trip time for the last `aospi_txrx()` call.
+uint32_t aospi_txrx_us();
+// Returns an estimate of the number of hops a command telegram and its response need in a bidirectional round trip.
+uint32_t aospi_txrx_hops(int t_extra=5);
 
 
 // The library tracks the number of transmitted telegrams via calls to aospi_tx() and aospi_txrx(). This function resets that counter to 0.

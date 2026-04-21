@@ -123,8 +123,7 @@ commandlookup=[
   "<unknown>"     , # 0x6C
   "setsetup_sr"   , # 0x6D
   "<unknown>"     , # 0x6E
-  "setpwm_sr"     , # 0x6F
-  "setpwmchn_sr"  , # 0x6F
+  "setpwm[chn]_sr", # 0x6F
   "<unknown>"     , # 0x70
   "setcurchn_sr"  , # 0x71
   "<unknown>"     , # 0x72

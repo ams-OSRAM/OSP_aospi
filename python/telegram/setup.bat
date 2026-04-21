@@ -1,6 +1,6 @@
 @ECHO OFF
 
-SET LOCATION=C:\programs\python311\
+SET LOCATION=C:\programs\python\
 
 %LOCATION%python.exe -m venv env
 CALL env\Scripts\activate.bat
